@@ -20,12 +20,12 @@ import { CSVLink } from 'react-csv';
 import { useCsvOtp } from 'hooks/useCsvOtp';
 import { Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material';
 import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
+import axiosServices from 'utils/axios';
 
 import CodingModal from './CodingModal';
 import AlertCodingDelete from './AlertCodingDelete';
 import CodingView from './CodingView';
 import { usePermissions } from 'contexts/PermissionContext';
-import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
 import Map, { Source, Layer } from 'react-map-gl';
 import MapControl from 'components/third-party/map/MapControl';
 import { Drawer, Paper } from '@mui/material';
@@ -318,87 +318,158 @@ export default function CodingListPage() {
 
     const fetchReferenceData = async () => {
         try {
-            const getAuthHeaders = () => {
-                const token = localStorage.serviceToken;
-                return token ? { Authorization: `Bearer ${token}` } : {};
+            const queries = [];
+            
+            // Always fetch states, but filter if user is restricted to a state
+            if (userHierarchy?.state) {
+                queries.push(axiosServices.get(`/states/${userHierarchy.state._id || userHierarchy.state}`));
+            } else {
+                queries.push(axiosServices.get('/states?all=true'));
+            }
+            
+            // Divisions - filter by state if applicable
+            if (userHierarchy?.division) {
+                queries.push(axiosServices.get(`/divisions/${userHierarchy.division._id || userHierarchy.division}`));
+            } else if (userHierarchy?.state) {
+                queries.push(axiosServices.get(`/divisions?all=true&state_id=${userHierarchy.state._id || userHierarchy.state}`));
+            } else {
+                queries.push(axiosServices.get('/divisions?all=true'));
+            }
+            
+            // Parliaments - filter by division if applicable
+            if (userHierarchy?.parliament) {
+                queries.push(axiosServices.get(`/parliaments/${userHierarchy.parliament._id || userHierarchy.parliament}`));
+            } else if (userHierarchy?.division) {
+                queries.push(axiosServices.get(`/parliaments?all=true&division_id=${userHierarchy.division._id || userHierarchy.division}`));
+            } else {
+                queries.push(axiosServices.get('/parliaments?all=true'));
+            }
+            
+            // Assemblies - filter by parliament if applicable
+            if (userHierarchy?.assembly) {
+                queries.push(axiosServices.get(`/assemblies/${userHierarchy.assembly._id || userHierarchy.assembly}`));
+            } else if (userHierarchy?.parliament) {
+                queries.push(axiosServices.get(`/assemblies?all=true&parliament_id=${userHierarchy.parliament._id || userHierarchy.parliament}`));
+            } else {
+                queries.push(axiosServices.get('/assemblies?all=true'));
+            }
+            
+            // Blocks - filter by assembly if applicable
+            if (userHierarchy?.block) {
+                queries.push(axiosServices.get(`/blocks/${userHierarchy.block._id || userHierarchy.block}`));
+            } else if (userHierarchy?.assembly) {
+                queries.push(axiosServices.get(`/blocks?all=true&assembly_id=${userHierarchy.assembly._id || userHierarchy.assembly}`));
+            } else {
+                queries.push(axiosServices.get('/blocks?all=true'));
+            }
+            
+            // Booths - filter by block if applicable
+            if (userHierarchy?.booth) {
+                queries.push(axiosServices.get(`/booths/${userHierarchy.booth._id || userHierarchy.booth}`));
+            } else if (userHierarchy?.block) {
+                queries.push(axiosServices.get(`/booths?all=true&block_id=${userHierarchy.block._id || userHierarchy.block}`));
+            } else {
+                queries.push(axiosServices.get('/booths?all=true'));
+            }
+            
+            // Panchayats, Villages, Falliyas (no hierarchy restriction)
+            queries.push(axiosServices.get('/panchayats?all=true'));
+            queries.push(axiosServices.get('/villages?all=true'));
+            queries.push(axiosServices.get('/falliyas?all=true'));
+
+            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, panchayatsRes, villagesRes, falliyasRes] = await Promise.all(queries);
+
+            // Handle different response structures
+            const getDataFromResponse = (res) => {
+                if (res.data?.data) return Array.isArray(res.data.data) ? res.data.data : [res.data.data];
+                if (res.data?.success && Array.isArray(res.data.data)) return res.data.data;
+                if (Array.isArray(res.data)) return res.data;
+                return [];
             };
-            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, panchayatsRes, villagesRes, falliyasRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/panchayats`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/villages`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/falliyas`, { headers: getAuthHeaders() })
-            ]);
 
-            const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData, panchayatsData, villagesData, falliyasData] = await Promise.all([
-                statesRes.json(),
-                divisionsRes.json(),
-                parliamentsRes.json(),
-                assembliesRes.json(),
-                blocksRes.json(),
-                boothsRes.json(),
-                panchayatsRes.json(),
-                villagesRes.json(),
-                falliyasRes.json()
-            ]);
+            const statesData = getDataFromResponse(statesRes);
+            const divisionsData = getDataFromResponse(divisionsRes);
+            const parliamentsData = getDataFromResponse(parliamentsRes);
+            const assembliesData = getDataFromResponse(assembliesRes);
+            const blocksData = getDataFromResponse(blocksRes);
+            const boothsData = getDataFromResponse(boothsRes);
+            const panchayatsData = getDataFromResponse(panchayatsRes);
+            const villagesData = getDataFromResponse(villagesRes);
+            const falliyasData = getDataFromResponse(falliyasRes);
 
-            if (statesData.success) {
+            console.log('[Coding] Hierarchy data fetched (with user restrictions):', {
+                states: statesData?.length || 0,
+                divisions: divisionsData?.length || 0,
+                parliaments: parliamentsData?.length || 0,
+                assemblies: assembliesData?.length || 0,
+                blocks: blocksData?.length || 0,
+                booths: boothsData?.length || 0,
+                panchayats: panchayatsData?.length || 0,
+                villages: villagesData?.length || 0,
+                falliyas: falliyasData?.length || 0,
+                userHierarchy: userHierarchy
+            });
 
-                setStates(statesData.data);
-            }
-            if (divisionsData.success) {
-
-                setDivisions(divisionsData.data);
-            }
-            if (parliamentsData.success) {
-
-                setParliaments(parliamentsData.data);
-            }
-            if (assembliesData.success) {
-                setAssemblies(assembliesData.data);
-            }
-            if (blocksData.success) {
-                setBlocks(blocksData.data);
-            }
-            if (boothsData.success) setBooths(boothsData.data);
-            if (panchayatsData.success) setPanchayats(panchayatsData.data);
-            if (villagesData.success) setVillages(villagesData.data);
-            if (falliyasData.success) setFalliyas(falliyasData.data);
-
+            setStates(statesData);
+            setDivisions(divisionsData);
+            setParliaments(parliamentsData);
+            setAssemblies(assembliesData);
+            setBlocks(blocksData);
+            setBooths(boothsData);
+            setPanchayats(panchayatsData);
+            setVillages(villagesData);
+            setFalliyas(falliyasData);
         } catch (error) {
-            console.error('Failed to fetch reference data:', error);
+            console.error('Error fetching reference data:', error);
         }
     };
 
-    // Fetch booths with coding to mark them on the map (respects selected year)
+    // Fetch booths with coding to mark them on the map (respects selected year) - respecting user hierarchy
     const fetchBoothsWithCoding = async (selectedYear = '') => {
         try {
-            const token = localStorage.getItem('serviceToken');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const yearQuery = selectedYear ? `&year=${encodeURIComponent(selectedYear)}` : '';
-            const codingRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?all=true&limit=50000${yearQuery}`, { headers });
-            const codingJson = await codingRes.json();
-            if (codingJson.success && Array.isArray(codingJson.data)) {
-                const boothIds = new Set();
-                codingJson.data.forEach(coding => {
-                    if (coding.booth_id) {
-                        const boothId = coding.booth_id._id || coding.booth_id;
-                        boothIds.add(String(boothId));
-                    }
-                });
-                setBoothsWithCoding(boothIds);
-                console.log('✅ Booths with coding updated (year:', selectedYear || 'ALL', '):', boothIds.size);
+            let url = '/codings?all=true&limit=50000';
+            if (selectedYear) url += `&year=${selectedYear}`;
+            
+            // Apply user hierarchy restrictions
+            if (userHierarchy?.state) {
+                url += `&state_id=${userHierarchy.state._id || userHierarchy.state}`;
             }
+            if (userHierarchy?.division) {
+                url += `&division_id=${userHierarchy.division._id || userHierarchy.division}`;
+            }
+            if (userHierarchy?.parliament) {
+                url += `&parliament_id=${userHierarchy.parliament._id || userHierarchy.parliament}`;
+            }
+            if (userHierarchy?.assembly) {
+                url += `&assembly_id=${userHierarchy.assembly._id || userHierarchy.assembly}`;
+            }
+            if (userHierarchy?.block) {
+                url += `&block_id=${userHierarchy.block._id || userHierarchy.block}`;
+            }
+            if (userHierarchy?.booth) {
+                url += `&booth_id=${userHierarchy.booth._id || userHierarchy.booth}`;
+            }
+            
+            const codingRes = await axiosServices.get(url);
+            const codingList = codingRes?.data?.data || [];
+            
+            // Create a Set of booth IDs that have coding data
+            const boothIds = new Set();
+            codingList.forEach(coding => {
+                if (coding.booth_id) {
+                    const boothId = coding.booth_id._id || coding.booth_id;
+                    boothIds.add(String(boothId));
+                }
+            });
+            setBoothsWithCoding(boothIds);
+            console.debug('[Coding Map] Fetched booths with Coding:', boothIds.size, 'year:', selectedYear || 'all');
         } catch (err) {
             console.warn('Failed to fetch booths with coding:', err);
         }
     };
 
-    // Load booth polygons by block name/id or ALL
+    // Load booth polygons from booth table using dedicated endpoint - respecting user hierarchy
+    // Only show polygons for booths that have Coding data
     const loadBoothPolygons = async (blockInput) => {
         if (!blockInput) {
             setMapError('Please select a Block');
@@ -406,107 +477,213 @@ export default function CodingListPage() {
         }
         setMapError('');
         try {
-            const token = localStorage.getItem('serviceToken');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-            // Fetch booths with coding in parallel (respect selected year)
-            fetchBoothsWithCoding(yearFilter);
-
-            if (blockInput === 'ALL') {
-                const apiUrl = import.meta.env.VITE_APP_API_URL || '';
-                const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
-                const resp = await fetch(url, { headers });
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const j = await resp.json();
-                let features = j.features || j.data || [];
-                if (features.length === 1 && features[0] && features[0].features && Array.isArray(features[0].features)) {
-                    features = features[0].features;
+            // First, fetch all Codings to get list of booths with Coding data
+            let codingsUrl = '/codings?all=true&limit=50000';
+            
+            // Apply user hierarchy restrictions
+            if (userHierarchy?.state) {
+                codingsUrl += `&state_id=${userHierarchy.state._id || userHierarchy.state}`;
+            }
+            if (userHierarchy?.division) {
+                codingsUrl += `&division_id=${userHierarchy.division._id || userHierarchy.division}`;
+            }
+            if (userHierarchy?.parliament) {
+                codingsUrl += `&parliament_id=${userHierarchy.parliament._id || userHierarchy.parliament}`;
+            }
+            if (userHierarchy?.assembly) {
+                codingsUrl += `&assembly_id=${userHierarchy.assembly._id || userHierarchy.assembly}`;
+            }
+            if (userHierarchy?.block) {
+                codingsUrl += `&block_id=${userHierarchy.block._id || userHierarchy.block}`;
+            }
+            if (userHierarchy?.booth) {
+                codingsUrl += `&booth_id=${userHierarchy.booth._id || userHierarchy.booth}`;
+            }
+            
+            const codingsRes = await axiosServices.get(codingsUrl);
+            const codingsList = codingsRes?.data?.data || [];
+            
+            // Create a Set of booth IDs that have Coding data
+            const boothIdsWithCoding = new Set();
+            codingsList.forEach(coding => {
+                const boothId = coding.booth_id?._id || coding.booth_id;
+                if (boothId) {
+                    boothIdsWithCoding.add(String(boothId));
                 }
-                if (!features || !Array.isArray(features) || features.length === 0) {
-                    setMapError('No booth polygons found');
+            });
+            
+            console.debug('[Coding Map] Booths with Coding data:', boothIdsWithCoding.size);
+
+            let features = [];
+            
+            // Check if user has access to the selected block
+            if (blockInput !== 'ALL') {
+                const blockObj = blocks.find(b => b.name === blockInput);
+                if (!blockObj) {
+                    setMapError(`Block '${blockInput}' not found`);
                     setBoothGeoJSON(null);
                     return;
                 }
-                const fc = { type: 'FeatureCollection', features };
-                setBoothGeoJSON(fc);
-                setTimeout(() => {
-                    try {
-                        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-                        if (!map || !fc.features?.length) return;
-                        const coords = [];
-                        fc.features.forEach(f => {
-                            const geom = f.geometry;
-                            if (!geom) return;
-                            const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
-                            if (geom.type === 'Polygon') collect(geom.coordinates);
-                            if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
-                        });
-                        if (coords.length) {
-                            const lons = coords.map(c => c[0]);
-                            const lats = coords.map(c => c[1]);
-                            const bounds = [
-                                [Math.min(...lons), Math.min(...lats)],
-                                [Math.max(...lons), Math.max(...lats)]
-                            ];
-                            map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+                
+                // Verify user has access to this block
+                if (userHierarchy?.block && (userHierarchy.block._id !== blockObj._id && userHierarchy.block !== blockObj._id)) {
+                    setMapError(`You don't have access to block '${blockInput}'`);
+                    setBoothGeoJSON(null);
+                    return;
+                }
+            }
+            
+            if (blockInput === 'ALL') {
+                // Fetch all booth polygons
+                const resp = await axiosServices.get('/booths/polygons');
+                features = resp.data?.features || [];
+                
+                // Filter by user hierarchy if applicable
+                if (userHierarchy) {
+                    features = features.filter(f => {
+                        const props = f.properties || {};
+                        
+                        // Check state access
+                        if (userHierarchy.state) {
+                            const stateId = userHierarchy.state._id || userHierarchy.state;
+                            if (props.state_id && props.state_id !== stateId) return false;
                         }
-                    } catch { }
-                }, 0);
-                return;
+                        
+                        // Check division access
+                        if (userHierarchy.division) {
+                            const divisionId = userHierarchy.division._id || userHierarchy.division;
+                            if (props.division_id && props.division_id !== divisionId) return false;
+                        }
+                        
+                        // Check parliament access
+                        if (userHierarchy.parliament) {
+                            const parliamentId = userHierarchy.parliament._id || userHierarchy.parliament;
+                            if (props.parliament_id && props.parliament_id !== parliamentId) return false;
+                        }
+                        
+                        // Check assembly access
+                        if (userHierarchy.assembly) {
+                            const assemblyId = userHierarchy.assembly._id || userHierarchy.assembly;
+                            if (props.assembly_id && props.assembly_id !== assemblyId) return false;
+                        }
+                        
+                        // Check block access
+                        if (userHierarchy.block) {
+                            const blockId = userHierarchy.block._id || userHierarchy.block;
+                            if (props.block_id && props.block_id !== blockId) return false;
+                        }
+                        
+                        // Check booth access
+                        if (userHierarchy.booth) {
+                            const boothId = userHierarchy.booth._id || userHierarchy.booth;
+                            if (props.booth_id && props.booth_id !== boothId) return false;
+                        }
+                        
+                        return true;
+                    });
+                    console.debug('[Coding Map] Filtered polygons by hierarchy:', features.length);
+                }
+                
+                console.debug('[Coding Map] Fetched all booth polygons:', features.length);
+            } else {
+                // Fetch booths for specific block
+                const blockObj = blocks.find(b => b.name === blockInput);
+                if (blockObj) {
+                    try {
+                        // Try using block_no first
+                        const resp = await axiosServices.get(`/booths/polygons/block-number/${blockObj.block_no || blockObj.name}`);
+                        features = resp.data?.features || [];
+                        console.debug('[Coding Map] Fetched booth polygons for block:', blockObj.name, 'count:', features.length);
+                    } catch (blockErr) {
+                        console.warn('[Coding Map] Block-specific endpoint failed, falling back to all polygons and filtering');
+                        // Fallback: get all and filter on frontend
+                        const resp = await axiosServices.get('/booths/polygons');
+                        const allFeatures = resp.data?.features || [];
+                        // Filter by block_id if available in properties
+                        features = allFeatures.filter(f => {
+                            const props = f.properties || {};
+                            return props.block_id === blockObj._id || props.BlockNumber === blockObj.block_no;
+                        });
+                        console.debug('[Coding Map] Filtered to', features.length, 'features for block');
+                    }
+                }
             }
 
-            // Try multiple endpoints
-            const candidates = [
-                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block/${encodeURIComponent(blockInput)}`,
-                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${encodeURIComponent(blockInput)}`,
-                `${import.meta.env.VITE_APP_API_URL}/booth-polygons?block=${encodeURIComponent(blockInput)}`
-            ];
-            let json = null;
-            for (const url of candidates) {
-                try {
-                    const resp = await fetch(url, { headers });
-                    if (!resp.ok) continue;
-                    const j = await resp.json();
-                    const features = j.features || (Array.isArray(j) ? j : (j.data || null));
-                    if (features && Array.isArray(features) && features.length > 0) {
-                        json = { type: 'FeatureCollection', features };
-                        break;
-                    }
-                } catch { }
-            }
-            if (!json) {
-                setMapError(`No booth polygons found for block '${blockInput}'`);
+            // Filter features to only show booths that have Coding data
+            const filteredFeatures = features.filter(f => {
+                const props = f.properties || {};
+                const boothId = props.BoothId || props.booth_id || props._id;
+                const hasData = boothIdsWithCoding.has(String(boothId));
+                if (!hasData) {
+                    console.debug('[Coding Map] Filtering out booth without Coding:', props.BoothNo || props.booth_number);
+                }
+                return hasData;
+            });
+
+            if (!filteredFeatures || filteredFeatures.length === 0) {
+                setMapError(`No booths with Coding data found in selected area`);
                 setBoothGeoJSON(null);
                 return;
             }
-            const fc = { type: 'FeatureCollection', features: json.features };
+
+            const fc = { type: 'FeatureCollection', features: filteredFeatures };
             setBoothGeoJSON(fc);
-            setTimeout(() => {
-                try {
-                    const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-                    if (!map || !fc.features?.length) return;
-                    const coords = [];
-                    fc.features.forEach(f => {
-                        const geom = f.geometry;
-                        if (!geom) return;
-                        const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
-                        if (geom.type === 'Polygon') collect(geom.coordinates);
-                        if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
-                    });
-                    if (coords.length) {
-                        const lons = coords.map(c => c[0]);
-                        const lats = coords.map(c => c[1]);
-                        const bounds = [
-                            [Math.min(...lons), Math.min(...lats)],
-                            [Math.max(...lons), Math.max(...lats)]
-                        ];
-                        map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
-                    }
-                } catch { }
-            }, 0);
+            console.debug('[Coding Map] GeoJSON created with', filteredFeatures.length, 'features (only booths with Coding data)');
+            // Auto-fit map to polygons
+            fitGeoJSONBounds(fc);
         } catch (e) {
+            console.error('[Coding Map] Error loading polygons:', e);
             setMapError(`Failed to load booth polygons: ${e.message}`);
             setBoothGeoJSON(null);
+        }
+    };
+
+    // Helper: fit map to GeoJSON feature collection bounds with retries
+    const fitGeoJSONBounds = (fc, attempt = 0) => {
+        try {
+            const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+            if (!map) {
+                if (attempt < 6) {
+                    setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
+                }
+                return;
+            }
+
+            if (!fc || !Array.isArray(fc.features) || fc.features.length === 0) return;
+
+            const coords = [];
+            fc.features.forEach(f => {
+                const geom = f.geometry;
+                if (!geom) return;
+                const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
+                if (geom.type === 'Polygon') collect(geom.coordinates);
+                if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+            });
+
+            if (!coords.length) return;
+
+            const lons = coords.map(c => c[0]);
+            const lats = coords.map(c => c[1]);
+            const bounds = [
+                [Math.min(...lons), Math.min(...lats)],
+                [Math.max(...lons), Math.max(...lats)]
+            ];
+
+            try {
+                map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+            } catch (err) {
+                if (attempt < 6) {
+                    setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
+                } else {
+                    console.warn('fitBounds failed after retries:', err);
+                }
+            }
+        } catch (err) {
+            if (attempt < 6) {
+                setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
+            } else {
+                console.warn('fitGeoJSONBounds unexpected error:', err);
+            }
         }
     };
 
@@ -638,10 +815,10 @@ export default function CodingListPage() {
         }
     };
 
-    // Fetch reference data only once on mount
+    // Fetch reference data on mount and when user hierarchy changes
     useEffect(() => {
         fetchReferenceData();
-    }, []);
+    }, [userHierarchy]);
 
     useEffect(() => {
         fetchCodingList(pagination.pageIndex, pagination.pageSize, globalFilter);
@@ -1208,7 +1385,7 @@ export default function CodingListPage() {
                             </TextField>
                         </Stack>
 
-                        <MapContainerStyled>
+                        <Box sx={{ height: 520, width: '100%', borderRadius: 1, overflow: 'hidden' }}>
                             <Map
                                 ref={mapRef}
                                 mapboxAccessToken={mapboxToken}
@@ -1270,107 +1447,25 @@ export default function CodingListPage() {
                                         />
                                     </Source>
                                 )}
-                                {/* Coding Markers Layer */}
-                                {boothGeoJSON && (
-                                    <Source
-                                        id="booth-markers"
-                                        type="geojson"
-                                        data={{
-                                            type: 'FeatureCollection',
-                                            features: boothGeoJSON.features.map(feature => {
-                                                const props = feature.properties || {};
-                                                const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
-
-                                                let coordinates = [0, 0];
-                                                if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
-                                                    const coords = feature.geometry.coordinates[0];
-                                                    const lngs = coords.map(c => c[0]);
-                                                    const lats = coords.map(c => c[1]);
-                                                    coordinates = [
-                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                        lats.reduce((a, b) => a + b, 0) / lats.length
-                                                    ];
-                                                } else if (feature.geometry?.type === 'MultiPolygon' && feature.geometry.coordinates?.[0]?.[0]) {
-                                                    const coords = feature.geometry.coordinates[0][0];
-                                                    const lngs = coords.map(c => c[0]);
-                                                    const lats = coords.map(c => c[1]);
-                                                    coordinates = [
-                                                        lngs.reduce((a, b) => a + b, 0) / lngs.length,
-                                                        lats.reduce((a, b) => a + b, 0) / lats.length
-                                                    ];
-                                                }
-
-                                                const hasCoding = Array.from(boothsWithCoding).some(codingBoothId => {
-                                                    const booth = booths.find(b => String(b._id) === codingBoothId);
-                                                    if (booth) {
-                                                        return String(booth.booth_number) === String(boothNo);
-                                                    }
-                                                    return false;
-                                                });
-
-                                                return {
-                                                    type: 'Feature',
-                                                    geometry: {
-                                                        type: 'Point',
-                                                        coordinates: coordinates
-                                                    },
-                                                    properties: {
-                                                        ...props,
-                                                        hasCoding: hasCoding
-                                                    }
-                                                };
-                                            })
-                                        }}
-                                    >
-                                        <Layer
-                                            id="booth-coding-markers"
-                                            type="circle"
-                                            paint={{
-                                                'circle-radius': 6,
-                                                'circle-color': [
-                                                    'case',
-                                                    ['get', 'hasCoding'],
-                                                    '#22c55e',
-                                                    '#ef4444'
-                                                ],
-                                                'circle-stroke-width': 2,
-                                                'circle-stroke-color': '#ffffff',
-                                                'circle-opacity': 0.9
-                                            }}
-                                        />
-                                    </Source>
-                                )}
+                                {/* Coding Markers Layer - Removed since we only show polygons for booths with Coding data */}
+                                {/* All displayed polygons represent booths with Coding data */}
                             </Map>
-                        </MapContainerStyled>
+                        </Box>
 
                         {/* Map Legend */}
                         <Paper elevation={2} sx={{ mt: 1, p: 1.5, display: 'inline-block' }}>
-                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend {yearFilter ? `(Year: ${yearFilter})` : '(All Years)'}</Typography>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
                             <Stack direction="row" spacing={3}>
                                 <Stack direction="row" spacing={1} alignItems="center">
-                                    <Box sx={{
-                                        width: 16,
-                                        height: 16,
-                                        borderRadius: '50%',
-                                        backgroundColor: '#22c55e',
-                                        border: '2px solid #ffffff',
-                                        boxShadow: 1
-                                    }} />
-                                    <Typography variant="caption">Has Coding</Typography>
-                                </Stack>
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                    <Box sx={{
-                                        width: 16,
-                                        height: 16,
-                                        borderRadius: '50%',
-                                        backgroundColor: '#ef4444',
-                                        border: '2px solid #ffffff',
-                                        boxShadow: 1
-                                    }} />
-                                    <Typography variant="caption">No Coding</Typography>
+                                    <Box sx={{ width: 16, height: 16, backgroundColor: '#1E90FF', border: '2px solid #1E90FF', boxShadow: 1 }} />
+                                    <Typography variant="caption">Booths with Coding Data</Typography>
                                 </Stack>
                             </Stack>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                                Only booths with Coding records are displayed
+                            </Typography>
                         </Paper>
+
                         {/* Right-side Drawer */}
                         <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
                             <Box sx={{ width: { xs: 340, sm: 480 }, p: 0, height: '100%' }}>
@@ -1802,7 +1897,7 @@ export default function CodingListPage() {
                         />
                     </Box>
                 </ScrollX>
-            </MainCard >
+            </MainCard>
 
             <CodingModal
                 open={openModal}

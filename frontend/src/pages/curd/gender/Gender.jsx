@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState, Fragment, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Alert, Drawer, Paper
+    Button, Stack, Box, Typography, Divider, Chip, TextField, MenuItem, Alert, Drawer, Paper, IconButton as MuiIconButton
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Add, Edit, Eye, Trash } from 'iconsax-react';
+import CloseIcon from '@mui/icons-material/Close';
 import {
     getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel,
     useReactTable, flexRender
@@ -18,6 +19,7 @@ import EmptyReactTable from 'pages/tables/react-table/empty';
 import { CSVLink } from 'react-csv';
 import { useCsvOtp } from 'hooks/useCsvOtp';
 import { Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material';
+import axiosServices from 'utils/axios';
 
 import GenderModal from './genderModal';
 import AlertGenderDelete from './AlertGenderDelete';
@@ -390,70 +392,157 @@ export default function GenderListPage() {
 
     const fetchReferenceData = async () => {
         try {
-            const headers = getAuthHeaders();
-            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, panchayatsRes, villagesRes, falliyasRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/panchayats`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/villages`, { headers }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/falliyas`, { headers })
-            ]);
+            const queries = [];
+            
+            // Always fetch states, but filter if user is restricted to a state
+            if (userHierarchy?.state) {
+                queries.push(axiosServices.get(`/states/${userHierarchy.state._id || userHierarchy.state}`));
+            } else {
+                queries.push(axiosServices.get('/states?all=true'));
+            }
+            
+            // Divisions - filter by state if applicable
+            if (userHierarchy?.division) {
+                queries.push(axiosServices.get(`/divisions/${userHierarchy.division._id || userHierarchy.division}`));
+            } else if (userHierarchy?.state) {
+                queries.push(axiosServices.get(`/divisions?all=true&state_id=${userHierarchy.state._id || userHierarchy.state}`));
+            } else {
+                queries.push(axiosServices.get('/divisions?all=true'));
+            }
+            
+            // Parliaments - filter by division if applicable
+            if (userHierarchy?.parliament) {
+                queries.push(axiosServices.get(`/parliaments/${userHierarchy.parliament._id || userHierarchy.parliament}`));
+            } else if (userHierarchy?.division) {
+                queries.push(axiosServices.get(`/parliaments?all=true&division_id=${userHierarchy.division._id || userHierarchy.division}`));
+            } else {
+                queries.push(axiosServices.get('/parliaments?all=true'));
+            }
+            
+            // Assemblies - filter by parliament if applicable
+            if (userHierarchy?.assembly) {
+                queries.push(axiosServices.get(`/assemblies/${userHierarchy.assembly._id || userHierarchy.assembly}`));
+            } else if (userHierarchy?.parliament) {
+                queries.push(axiosServices.get(`/assemblies?all=true&parliament_id=${userHierarchy.parliament._id || userHierarchy.parliament}`));
+            } else {
+                queries.push(axiosServices.get('/assemblies?all=true'));
+            }
+            
+            // Blocks - filter by assembly if applicable
+            if (userHierarchy?.block) {
+                queries.push(axiosServices.get(`/blocks/${userHierarchy.block._id || userHierarchy.block}`));
+            } else if (userHierarchy?.assembly) {
+                queries.push(axiosServices.get(`/blocks?all=true&assembly_id=${userHierarchy.assembly._id || userHierarchy.assembly}`));
+            } else {
+                queries.push(axiosServices.get('/blocks?all=true'));
+            }
+            
+            // Booths - filter by block if applicable
+            if (userHierarchy?.booth) {
+                queries.push(axiosServices.get(`/booths/${userHierarchy.booth._id || userHierarchy.booth}`));
+            } else if (userHierarchy?.block) {
+                queries.push(axiosServices.get(`/booths?all=true&block_id=${userHierarchy.block._id || userHierarchy.block}`));
+            } else {
+                queries.push(axiosServices.get('/booths?all=true'));
+            }
+            
+            // Panchayats, Villages, Falliyas (no hierarchy restriction)
+            queries.push(axiosServices.get('/panchayats?all=true'));
+            queries.push(axiosServices.get('/villages?all=true'));
+            queries.push(axiosServices.get('/falliyas?all=true'));
 
-            const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData, panchayatsData, villagesData, falliyasData] = await Promise.all([
-                statesRes.json(),
-                divisionsRes.json(),
-                parliamentsRes.json(),
-                assembliesRes.json(),
-                blocksRes.json(),
-                boothsRes.json(),
-                panchayatsRes.json(),
-                villagesRes.json(),
-                falliyasRes.json()
-            ]);
+            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, panchayatsRes, villagesRes, falliyasRes] = await Promise.all(queries);
 
-            if (statesData.success) setStates(statesData.data);
-            if (divisionsData.success) setDivisions(divisionsData.data);
-            if (parliamentsData.success) setParliaments(parliamentsData.data);
-            if (assembliesData.success) setAssemblies(assembliesData.data);
-            if (blocksData.success) setBlocks(blocksData.data);
-            if (boothsData.success) setBooths(boothsData.data);
-            if (panchayatsData.success) setPanchayats(panchayatsData.data);
-            if (villagesData.success) setVillages(villagesData.data);
-            if (falliyasData.success) setFalliyas(falliyasData.data);
+            // Handle different response structures
+            const getDataFromResponse = (res) => {
+                if (res.data?.data) return Array.isArray(res.data.data) ? res.data.data : [res.data.data];
+                if (res.data?.success && Array.isArray(res.data.data)) return res.data.data;
+                if (Array.isArray(res.data)) return res.data;
+                return [];
+            };
 
+            const statesData = getDataFromResponse(statesRes);
+            const divisionsData = getDataFromResponse(divisionsRes);
+            const parliamentsData = getDataFromResponse(parliamentsRes);
+            const assembliesData = getDataFromResponse(assembliesRes);
+            const blocksData = getDataFromResponse(blocksRes);
+            const boothsData = getDataFromResponse(boothsRes);
+            const panchayatsData = getDataFromResponse(panchayatsRes);
+            const villagesData = getDataFromResponse(villagesRes);
+            const falliyasData = getDataFromResponse(falliyasRes);
+
+            console.log('[Gender] Hierarchy data fetched (with user restrictions):', {
+                states: statesData?.length || 0,
+                divisions: divisionsData?.length || 0,
+                parliaments: parliamentsData?.length || 0,
+                assemblies: assembliesData?.length || 0,
+                blocks: blocksData?.length || 0,
+                booths: boothsData?.length || 0,
+                panchayats: panchayatsData?.length || 0,
+                villages: villagesData?.length || 0,
+                falliyas: falliyasData?.length || 0,
+                userHierarchy: userHierarchy
+            });
+
+            setStates(statesData);
+            setDivisions(divisionsData);
+            setParliaments(parliamentsData);
+            setAssemblies(assembliesData);
+            setBlocks(blocksData);
+            setBooths(boothsData);
+            setPanchayats(panchayatsData);
+            setVillages(villagesData);
+            setFalliyas(falliyasData);
         } catch (error) {
-            console.error('Failed to fetch reference data:', error);
+            console.error('Error fetching reference data:', error);
         }
     };
 
     const fetchGenderList = async (pageIndex, pageSize, globalFilter = '') => {
         setLoading(true);
         try {
-            let query = globalFilter ? `&search=${encodeURIComponent(globalFilter)}` : '';
-            if (selectedState) query += `&state_id=${selectedState}`;
-            if (selectedDivision) query += `&division_id=${selectedDivision}`;
-            if (selectedParliament) query += `&parliament_id=${selectedParliament}`;
-            if (selectedAssembly) query += `&assembly_id=${selectedAssembly}`;
-            if (selectedBlock) query += `&block_id=${selectedBlock}`;
-            if (selectedBooth) query += `&booth_id=${selectedBooth}`;
-            if (selectedPanchayat) query += `&panchayat_id=${selectedPanchayat}`;
-            if (selectedVillage) query += `&village_id=${selectedVillage}`;
-            if (selectedFalliya) query += `&falliya_id=${selectedFalliya}`;
-            if (yearFilter) query += `&year=${yearFilter}`;
+            const params = new URLSearchParams({
+                page: pageIndex + 1,
+                limit: pageSize,
+                ...(globalFilter && { search: globalFilter }),
+                ...(selectedState && { state_id: selectedState }),
+                ...(selectedDivision && { division_id: selectedDivision }),
+                ...(selectedParliament && { parliament_id: selectedParliament }),
+                ...(selectedAssembly && { assembly_id: selectedAssembly }),
+                ...(selectedBlock && { block_id: selectedBlock }),
+                ...(selectedBooth && { booth_id: selectedBooth }),
+                ...(selectedPanchayat && { panchayat_id: selectedPanchayat }),
+                ...(selectedVillage && { village_id: selectedVillage }),
+                ...(selectedFalliya && { falliya_id: selectedFalliya }),
+                ...(yearFilter && { year: yearFilter })
+            });
 
-            // Hierarchy-based filtering is handled automatically by the backend
-            // via getUserPermissionsAndHierarchy middleware, so no need to add filters here
+            // Apply user hierarchy restrictions
+            if (userHierarchy?.state) {
+                params.append('state_id', userHierarchy.state._id || userHierarchy.state);
+            }
+            if (userHierarchy?.division) {
+                params.append('division_id', userHierarchy.division._id || userHierarchy.division);
+            }
+            if (userHierarchy?.parliament) {
+                params.append('parliament_id', userHierarchy.parliament._id || userHierarchy.parliament);
+            }
+            if (userHierarchy?.assembly) {
+                params.append('assembly_id', userHierarchy.assembly._id || userHierarchy.assembly);
+            }
+            if (userHierarchy?.block) {
+                params.append('block_id', userHierarchy.block._id || userHierarchy.block);
+            }
+            if (userHierarchy?.booth) {
+                params.append('booth_id', userHierarchy.booth._id || userHierarchy.booth);
+            }
 
-            const headers = getAuthHeaders();
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders?page=${pageIndex + 1}&limit=${pageSize}${query}`, { headers });
-            const json = await res.json();
-            if (json.success) {
-                setGenderList(json.data);
-                setPageCount(json.pages);
+            console.debug('[Gender] fetching with hierarchy params:', params.toString());
+            const res = await axiosServices.get(`/genders?${params}`);
+            if (res.data?.success || res.data?.data) {
+                setGenderList(res.data.data || []);
+                setPageCount(res.data.pages || 0);
+                fetchBoothsWithGender(yearFilter);
             }
         } catch (error) {
             console.error('Failed to fetch gender list:', error);
@@ -462,31 +551,52 @@ export default function GenderListPage() {
         }
     };
 
-    // Fetch booths with gender data
+    // Fetch booths with gender data - respecting user hierarchy
     const fetchBoothsWithGender = async (selectedYear = yearFilter) => {
         try {
-            const headers = getAuthHeaders();
-            let url = `${import.meta.env.VITE_APP_API_URL}/genders?all=true&limit=50000`;
+            let url = '/genders?all=true&limit=50000';
             if (selectedYear) url += `&year=${selectedYear}`;
-            const genderRes = await fetch(url, { headers });
-            const genderJson = await genderRes.json();
-            if (genderJson.success && Array.isArray(genderJson.data)) {
-                const boothIds = new Set();
-                genderJson.data.forEach(gender => {
-                    if (gender.booth_id) {
-                        const boothId = gender.booth_id._id || gender.booth_id;
-                        boothIds.add(String(boothId));
-                    }
-                });
-                setBoothsWithGender(boothIds);
-                console.log('✅ Booths with gender data updated (Year: ' + (selectedYear || 'All') + '):', boothIds.size);
+            
+            // Apply user hierarchy restrictions
+            if (userHierarchy?.state) {
+                url += `&state_id=${userHierarchy.state._id || userHierarchy.state}`;
             }
+            if (userHierarchy?.division) {
+                url += `&division_id=${userHierarchy.division._id || userHierarchy.division}`;
+            }
+            if (userHierarchy?.parliament) {
+                url += `&parliament_id=${userHierarchy.parliament._id || userHierarchy.parliament}`;
+            }
+            if (userHierarchy?.assembly) {
+                url += `&assembly_id=${userHierarchy.assembly._id || userHierarchy.assembly}`;
+            }
+            if (userHierarchy?.block) {
+                url += `&block_id=${userHierarchy.block._id || userHierarchy.block}`;
+            }
+            if (userHierarchy?.booth) {
+                url += `&booth_id=${userHierarchy.booth._id || userHierarchy.booth}`;
+            }
+            
+            const genderRes = await axiosServices.get(url);
+            const genderList = genderRes?.data?.data || [];
+            
+            // Create a Set of booth IDs that have gender data
+            const boothIds = new Set();
+            genderList.forEach(gender => {
+                if (gender.booth_id) {
+                    const boothId = gender.booth_id._id || gender.booth_id;
+                    boothIds.add(String(boothId));
+                }
+            });
+            setBoothsWithGender(boothIds);
+            console.debug('[Gender Map] Fetched booths with Gender:', boothIds.size, 'year:', selectedYear || 'all');
         } catch (err) {
             console.warn('Failed to fetch booths with gender:', err);
         }
     };
 
-    // Map: Load booth polygons by block (robust, like Work Status)
+    // Map: Load booth polygons by block (robust, like BLA page)
+    // Only show polygons for booths that have Gender data
     const loadBoothPolygonsByBlock = async (blockVal) => {
         if (!blockVal) {
             setMapError('Please select Block');
@@ -494,110 +604,213 @@ export default function GenderListPage() {
         }
         setMapError('');
         try {
-            const headers = getAuthHeaders();
-
-            fetchBoothsWithGender(yearFilter);
-
-            if (blockVal === 'ALL') {
-                const apiUrl = import.meta.env.VITE_APP_API_URL || '';
-                const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
-                const resp = await fetch(url, { headers });
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const j = await resp.json();
-                let features = j.features || j.data || [];
-                if (features.length === 1 && features[0] && features[0].features && Array.isArray(features[0].features)) {
-                    features = features[0].features;
+            // First, fetch all genders to get list of booths with gender data
+            let gendersUrl = '/genders?all=true&limit=50000';
+            
+            // Apply user hierarchy restrictions
+            if (userHierarchy?.state) {
+                gendersUrl += `&state_id=${userHierarchy.state._id || userHierarchy.state}`;
+            }
+            if (userHierarchy?.division) {
+                gendersUrl += `&division_id=${userHierarchy.division._id || userHierarchy.division}`;
+            }
+            if (userHierarchy?.parliament) {
+                gendersUrl += `&parliament_id=${userHierarchy.parliament._id || userHierarchy.parliament}`;
+            }
+            if (userHierarchy?.assembly) {
+                gendersUrl += `&assembly_id=${userHierarchy.assembly._id || userHierarchy.assembly}`;
+            }
+            if (userHierarchy?.block) {
+                gendersUrl += `&block_id=${userHierarchy.block._id || userHierarchy.block}`;
+            }
+            if (userHierarchy?.booth) {
+                gendersUrl += `&booth_id=${userHierarchy.booth._id || userHierarchy.booth}`;
+            }
+            
+            const gendersRes = await axiosServices.get(gendersUrl);
+            const gendersList = gendersRes?.data?.data || [];
+            
+            // Create a Set of booth IDs that have gender data
+            const boothIdsWithGender = new Set();
+            gendersList.forEach(gender => {
+                const boothId = gender.booth_id?._id || gender.booth_id;
+                if (boothId) {
+                    boothIdsWithGender.add(String(boothId));
                 }
-                if (!features || !Array.isArray(features) || features.length === 0) {
-                    setMapError('No booth polygons found');
+            });
+            
+            console.debug('[Gender Map] Booths with Gender data:', boothIdsWithGender.size);
+
+            let features = [];
+            
+            // Check if user has access to the selected block
+            if (blockVal !== 'ALL') {
+                const blockObj = blocks.find(b => b.name === blockVal);
+                if (!blockObj) {
+                    setMapError(`Block '${blockVal}' not found`);
                     setBoothGeoJSON(null);
                     return;
                 }
-                const fc = { type: 'FeatureCollection', features };
-                setBoothGeoJSON(fc);
-                setTimeout(() => {
-                    try {
-                        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-                        if (!map || !fc.features?.length) return;
-                        const coords = [];
-                        fc.features.forEach(f => {
-                            const geom = f.geometry;
-                            if (!geom) return;
-                            const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
-                            if (geom.type === 'Polygon') collect(geom.coordinates);
-                            if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
-                        });
-                        if (coords.length) {
-                            const lons = coords.map(c => c[0]);
-                            const lats = coords.map(c => c[1]);
-                            const bounds = [
-                                [Math.min(...lons), Math.min(...lats)],
-                                [Math.max(...lons), Math.max(...lats)]
-                            ];
-                            map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+                
+                // Verify user has access to this block
+                if (userHierarchy?.block && (userHierarchy.block._id !== blockObj._id && userHierarchy.block !== blockObj._id)) {
+                    setMapError(`You don't have access to block '${blockVal}'`);
+                    setBoothGeoJSON(null);
+                    return;
+                }
+            }
+            
+            if (blockVal === 'ALL') {
+                // Fetch all booth polygons
+                const resp = await axiosServices.get('/booths/polygons');
+                features = resp.data?.features || [];
+                
+                // Filter by user hierarchy if applicable
+                if (userHierarchy) {
+                    features = features.filter(f => {
+                        const props = f.properties || {};
+                        
+                        // Check state access
+                        if (userHierarchy.state) {
+                            const stateId = userHierarchy.state._id || userHierarchy.state;
+                            if (props.state_id && props.state_id !== stateId) return false;
                         }
-                    } catch { }
-                }, 0);
-                return;
+                        
+                        // Check division access
+                        if (userHierarchy.division) {
+                            const divisionId = userHierarchy.division._id || userHierarchy.division;
+                            if (props.division_id && props.division_id !== divisionId) return false;
+                        }
+                        
+                        // Check parliament access
+                        if (userHierarchy.parliament) {
+                            const parliamentId = userHierarchy.parliament._id || userHierarchy.parliament;
+                            if (props.parliament_id && props.parliament_id !== parliamentId) return false;
+                        }
+                        
+                        // Check assembly access
+                        if (userHierarchy.assembly) {
+                            const assemblyId = userHierarchy.assembly._id || userHierarchy.assembly;
+                            if (props.assembly_id && props.assembly_id !== assemblyId) return false;
+                        }
+                        
+                        // Check block access
+                        if (userHierarchy.block) {
+                            const blockId = userHierarchy.block._id || userHierarchy.block;
+                            if (props.block_id && props.block_id !== blockId) return false;
+                        }
+                        
+                        // Check booth access
+                        if (userHierarchy.booth) {
+                            const boothId = userHierarchy.booth._id || userHierarchy.booth;
+                            if (props.booth_id && props.booth_id !== boothId) return false;
+                        }
+                        
+                        return true;
+                    });
+                    console.debug('[Gender Map] Filtered polygons by hierarchy:', features.length);
+                }
+                
+                console.debug('[Gender Map] Fetched all booth polygons:', features.length);
+            } else {
+                // Fetch booths for specific block
+                const blockObj = blocks.find(b => b.name === blockVal);
+                if (blockObj) {
+                    try {
+                        // Try using block_no first
+                        const resp = await axiosServices.get(`/booths/polygons/block-number/${blockObj.block_no || blockObj.name}`);
+                        features = resp.data?.features || [];
+                        console.debug('[Gender Map] Fetched booth polygons for block:', blockObj.name, 'count:', features.length);
+                    } catch (blockErr) {
+                        console.warn('[Gender Map] Block-specific endpoint failed, falling back to all polygons and filtering');
+                        // Fallback: get all and filter on frontend
+                        const resp = await axiosServices.get('/booths/polygons');
+                        const allFeatures = resp.data?.features || [];
+                        // Filter by block_id if available in properties
+                        features = allFeatures.filter(f => {
+                            const props = f.properties || {};
+                            return props.block_id === blockObj._id || props.BlockNumber === blockObj.block_no;
+                        });
+                        console.debug('[Gender Map] Filtered to', features.length, 'features for block');
+                    }
+                }
             }
 
-            const candidates = [
-                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block/${encodeURIComponent(blockVal)}`,
-                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${encodeURIComponent(blockVal)}`,
-                `${import.meta.env.VITE_APP_API_URL}/booth-polygons?block=${encodeURIComponent(blockVal)}`
-            ];
+            // Filter features to only show booths that have Gender data
+            const filteredFeatures = features.filter(f => {
+                const props = f.properties || {};
+                const boothId = props.BoothId || props.booth_id || props._id;
+                const hasData = boothIdsWithGender.has(String(boothId));
+                if (!hasData) {
+                    console.debug('[Gender Map] Filtering out booth without Gender:', props.BoothNo || props.booth_number);
+                }
+                return hasData;
+            });
 
-            let json = null;
-            for (const url of candidates) {
-                try {
-                    const resp = await fetch(url, { headers });
-                    if (!resp.ok) {
-                        continue;
-                    }
-                    const j = await resp.json();
-                    const features = j.features || (Array.isArray(j) ? j : (j.data || null));
-                    if (features && Array.isArray(features) && features.length > 0) {
-                        json = { type: 'FeatureCollection', features };
-                        break;
-                    }
-                } catch (e) { }
-            }
-
-            if (!json) {
-                setMapError(`No booth polygons found for block '${blockVal}'`);
+            if (!filteredFeatures || filteredFeatures.length === 0) {
+                setMapError(`No booths with Gender data found in selected area`);
                 setBoothGeoJSON(null);
                 return;
             }
 
-            const fc = { type: 'FeatureCollection', features: json.features };
+            const fc = { type: 'FeatureCollection', features: filteredFeatures };
             setBoothGeoJSON(fc);
-            setTimeout(() => {
-                try {
-                    const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-                    if (!map || !fc.features?.length) return;
-                    const coords = [];
-                    fc.features.forEach(f => {
-                        const geom = f.geometry;
-                        if (!geom) return;
-                        const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
-                        if (geom.type === 'Polygon') collect(geom.coordinates);
-                        if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
-                    });
-                    if (coords.length) {
-                        const lons = coords.map(c => c[0]);
-                        const lats = coords.map(c => c[1]);
-                        const bounds = [
-                            [Math.min(...lons), Math.min(...lats)],
-                            [Math.max(...lons), Math.max(...lats)]
-                        ];
-                        map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
-                    }
-                } catch { }
-            }, 0);
+            console.debug('[Gender Map] GeoJSON created with', filteredFeatures.length, 'features (only booths with Gender data)');
+            // Auto-fit map to polygons
+            fitGeoJSONBounds(fc);
         } catch (e) {
-            console.error('Failed to load booth polygons:', e);
+            console.error('[Gender Map] Error loading polygons:', e);
             setMapError(`Failed to load booth polygons: ${e.message}`);
             setBoothGeoJSON(null);
+        }
+    };
+
+    // Helper: fit map to GeoJSON feature collection bounds with retries
+    const fitGeoJSONBounds = (fc, attempt = 0) => {
+        try {
+            const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+            if (!map) {
+                if (attempt < 6) {
+                    setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
+                }
+                return;
+            }
+
+            if (!fc || !Array.isArray(fc.features) || fc.features.length === 0) return;
+
+            const coords = [];
+            fc.features.forEach(f => {
+                const geom = f.geometry;
+                if (!geom) return;
+                const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
+                if (geom.type === 'Polygon') collect(geom.coordinates);
+                if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+            });
+
+            if (!coords.length) return;
+
+            const lons = coords.map(c => c[0]);
+            const lats = coords.map(c => c[1]);
+            const bounds = [
+                [Math.min(...lons), Math.min(...lats)],
+                [Math.max(...lons), Math.max(...lats)]
+            ];
+
+            try {
+                map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+            } catch (err) {
+                if (attempt < 6) {
+                    setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
+                } else {
+                    console.warn('fitBounds failed after retries:', err);
+                }
+            }
+        } catch (err) {
+            if (attempt < 6) {
+                setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
+            } else {
+                console.warn('fitGeoJSONBounds unexpected error:', err);
+            }
         }
     };
 
@@ -610,39 +823,35 @@ export default function GenderListPage() {
 
     // Refresh gender markers when year filter changes
     useEffect(() => {
-        if (boothGeoJSON && yearFilter !== undefined) {
+        if (boothGeoJSON) {
             fetchBoothsWithGender(yearFilter);
-            setPagination(prev => ({ ...prev, pageIndex: 0 }));
         }
     }, [yearFilter]);
 
     // On polygon click, fetch Gender details for that booth
     const fetchBoothGenderDetails = async (boothNo) => {
         try {
-            const headers = getAuthHeaders();
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?all=true&limit=10000`, { headers });
-            const json = await res.json();
+            const res = await axiosServices.get(`/booths?all=true&limit=10000`);
             let booth = null;
-            if (json.success && Array.isArray(json.data)) {
+            if (res.data?.data && Array.isArray(res.data.data)) {
                 const boothNoStr = String(boothNo).trim();
-                booth = json.data.find(b => String(b.booth_number).trim() === boothNoStr)
-                    || json.data.find(b => String(b.booth_number).trim().toLowerCase() === boothNoStr.toLowerCase())
-                    || json.data.find(b => String(b.booth_number).trim().includes(boothNoStr) || boothNoStr.includes(String(b.booth_number).trim()));
+                booth = res.data.data.find(b => String(b.booth_number).trim() === boothNoStr)
+                    || res.data.data.find(b => String(b.booth_number).trim().toLowerCase() === boothNoStr.toLowerCase())
+                    || res.data.data.find(b => String(b.booth_number).trim().includes(boothNoStr) || boothNoStr.includes(String(b.booth_number).trim()));
             }
 
             let gender = null;
             if (booth && booth._id) {
                 try {
-                    let gUrl = `${import.meta.env.VITE_APP_API_URL}/genders/booth/${encodeURIComponent(booth._id)}`;
+                    let gUrl = `/genders/booth/${encodeURIComponent(booth._id)}`;
                     if (yearFilter) gUrl += `?year=${yearFilter}`;
-                    const gRes = await fetch(gUrl, { headers });
-                    const gJson = await gRes.json();
-                    if (gJson?.success) {
-                        if (Array.isArray(gJson.data) && gJson.data.length > 0) {
-                            const g = gJson.data[0];
+                    const gRes = await axiosServices.get(gUrl);
+                    if (gRes?.data?.success) {
+                        if (Array.isArray(gRes.data.data) && gRes.data.data.length > 0) {
+                            const g = gRes.data.data[0];
                             gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male || 0) + (g.female || 0) + (g.others || 0) };
-                        } else if (gJson.data && typeof gJson.data === 'object') {
-                            const g = gJson.data;
+                        } else if (gRes.data.data && typeof gRes.data.data === 'object') {
+                            const g = gRes.data.data;
                             gender = { male: g.male || 0, female: g.female || 0, others: g.others || 0, total: (g.male || 0) + (g.female || 0) + (g.others || 0) };
                         }
                     }
@@ -699,12 +908,11 @@ export default function GenderListPage() {
         yearFilter
     ]);
 
-    // Fetch reference data only once when component mounts
-    // Fetch reference data only once when component mounts
+    // Fetch reference data and all gender data for filters
     useEffect(() => {
         fetchReferenceData();
         fetchAllGenderDataForFilters();
-    }, []);
+    }, [userHierarchy]);
 
     // Keep filter options in sync with current filters (globalFilter/yearFilter handled in main useEffect)
     useEffect(() => {
@@ -1019,12 +1227,9 @@ export default function GenderListPage() {
 
     const fetchAllGendersForCsv = async () => {
         try {
-            const token = localStorage.serviceToken;
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders?all=true`, { headers });
-            const json = await res.json();
-            if (json.success) {
-                return json.data;
+            const res = await axiosServices.get(`/genders?all=true`);
+            if (res.data?.success || res.data?.data) {
+                return res.data.data || [];
             }
         } catch (error) {
             console.error('Failed to fetch all genders for CSV:', error);
@@ -1134,19 +1339,9 @@ export default function GenderListPage() {
 
             const filtered = rows.filter((r) => r.male || r.female || r.others);
 
-            const token = localStorage.getItem('serviceToken');
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders/import`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {})
-                },
-                body: JSON.stringify({ rows: filtered })
-            });
-
-            const result = await res.json();
-            setImportResult(result);
-            if (result?.success) {
+            const res = await axiosServices.post('/genders/import', { rows: filtered });
+            setImportResult(res.data);
+            if (res.data?.success) {
                 fetchGenderList(pagination.pageIndex, pagination.pageSize, globalFilter);
             }
         } catch (error) {
@@ -1250,27 +1445,8 @@ export default function GenderListPage() {
                                     />
                                 </Source>
                             )}
-                            {/* Gender Markers Layer (deduped) */}
-                            {boothMarkersGeoJSON && (
-                                <Source id="booth-markers" type="geojson" data={boothMarkersGeoJSON}>
-                                    <Layer
-                                        id="booth-gender-markers"
-                                        type="circle"
-                                        paint={{
-                                            'circle-radius': 6,
-                                            'circle-color': [
-                                                'case',
-                                                ['get', 'hasGender'],
-                                                '#22c55e',
-                                                '#ef4444'
-                                            ],
-                                            'circle-stroke-width': 2,
-                                            'circle-stroke-color': '#ffffff',
-                                            'circle-opacity': 0.9
-                                        }}
-                                    />
-                                </Source>
-                            )}
+                            {/* Gender Markers Layer - Removed since we only show polygons for booths with Gender data */}
+                            {/* All displayed polygons represent booths with Gender data */}
                         </Map>
                     </MapContainerStyled>
 
@@ -1284,25 +1460,16 @@ export default function GenderListPage() {
                                 <Box sx={{
                                     width: 16,
                                     height: 16,
-                                    borderRadius: '50%',
-                                    backgroundColor: '#22c55e',
-                                    border: '2px solid #ffffff',
+                                    backgroundColor: '#1E90FF',
+                                    border: '2px solid #1E90FF',
                                     boxShadow: 1
                                 }} />
-                                <Typography variant="caption">Has Gender Data</Typography>
-                            </Stack>
-                            <Stack direction="row" spacing={1} alignItems="center">
-                                <Box sx={{
-                                    width: 16,
-                                    height: 16,
-                                    borderRadius: '50%',
-                                    backgroundColor: '#ef4444',
-                                    border: '2px solid #ffffff',
-                                    boxShadow: 1
-                                }} />
-                                <Typography variant="caption">No Gender Data</Typography>
+                                <Typography variant="caption">Booths with Gender Data</Typography>
                             </Stack>
                         </Stack>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                            Only booths with Gender records are displayed
+                        </Typography>
                     </Paper>
                 </Box>
 

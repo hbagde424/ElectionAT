@@ -30,6 +30,7 @@ import EventView from './EventsView';
 import { usePermissions } from 'contexts/PermissionContext';
 import { useFilterOptionsFromData, fetchAllDataForFilters } from 'hooks/useFilterOptionsFromData';
 import { safeRenderError } from 'utils/importResultHelpers';
+import axiosServices from 'utils/axios';
 
 export default function EventListPage() {
     const theme = useTheme();
@@ -454,70 +455,152 @@ export default function EventListPage() {
 
     const fetchReferenceData = async () => {
         try {
-            const getAuthHeaders = () => {
-                const token = localStorage.getItem('serviceToken');
-                return token ? { Authorization: `Bearer ${token}` } : {};
+            const queries = [];
+            
+            // Always fetch states, but filter if user is restricted to a state
+            if (userHierarchy?.state) {
+                queries.push(axiosServices.get(`/states/${userHierarchy.state._id || userHierarchy.state}`));
+            } else {
+                queries.push(axiosServices.get('/states?all=true'));
+            }
+            
+            // Divisions - filter by state if applicable
+            if (userHierarchy?.division) {
+                queries.push(axiosServices.get(`/divisions/${userHierarchy.division._id || userHierarchy.division}`));
+            } else if (userHierarchy?.state) {
+                queries.push(axiosServices.get(`/divisions?all=true&state_id=${userHierarchy.state._id || userHierarchy.state}`));
+            } else {
+                queries.push(axiosServices.get('/divisions?all=true'));
+            }
+            
+            // Parliaments - filter by division if applicable
+            if (userHierarchy?.parliament) {
+                queries.push(axiosServices.get(`/parliaments/${userHierarchy.parliament._id || userHierarchy.parliament}`));
+            } else if (userHierarchy?.division) {
+                queries.push(axiosServices.get(`/parliaments?all=true&division_id=${userHierarchy.division._id || userHierarchy.division}`));
+            } else {
+                queries.push(axiosServices.get('/parliaments?all=true'));
+            }
+            
+            // Assemblies - filter by parliament if applicable
+            if (userHierarchy?.assembly) {
+                queries.push(axiosServices.get(`/assemblies/${userHierarchy.assembly._id || userHierarchy.assembly}`));
+            } else if (userHierarchy?.parliament) {
+                queries.push(axiosServices.get(`/assemblies?all=true&parliament_id=${userHierarchy.parliament._id || userHierarchy.parliament}`));
+            } else {
+                queries.push(axiosServices.get('/assemblies?all=true'));
+            }
+            
+            // Blocks - filter by assembly if applicable
+            if (userHierarchy?.block) {
+                queries.push(axiosServices.get(`/blocks/${userHierarchy.block._id || userHierarchy.block}`));
+            } else if (userHierarchy?.assembly) {
+                queries.push(axiosServices.get(`/blocks?all=true&assembly_id=${userHierarchy.assembly._id || userHierarchy.assembly}`));
+            } else {
+                queries.push(axiosServices.get('/blocks?all=true'));
+            }
+            
+            // Booths - filter by block if applicable
+            if (userHierarchy?.booth) {
+                queries.push(axiosServices.get(`/booths/${userHierarchy.booth._id || userHierarchy.booth}`));
+            } else if (userHierarchy?.block) {
+                queries.push(axiosServices.get(`/booths?all=true&block_id=${userHierarchy.block._id || userHierarchy.block}`));
+            } else {
+                queries.push(axiosServices.get('/booths?all=true'));
+            }
+            
+            // Panchayats, Villages, Falliyas (no hierarchy restriction)
+            queries.push(axiosServices.get('/panchayats?all=true'));
+            queries.push(axiosServices.get('/villages?all=true'));
+            queries.push(axiosServices.get('/falliyas?all=true'));
+
+            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, panchayatsRes, villagesRes, falliyasRes] = await Promise.all(queries);
+
+            // Handle different response structures
+            const getDataFromResponse = (res) => {
+                if (res.data?.data) return Array.isArray(res.data.data) ? res.data.data : [res.data.data];
+                if (res.data?.success && Array.isArray(res.data.data)) return res.data.data;
+                if (Array.isArray(res.data)) return res.data;
+                return [];
             };
 
-            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, panchayatsRes, villagesRes, falliyasRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/states`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/divisions`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/blocks`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/panchayats`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/villages`, { headers: getAuthHeaders() }),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/falliyas`, { headers: getAuthHeaders() })
-            ]);
+            const statesData = getDataFromResponse(statesRes);
+            const divisionsData = getDataFromResponse(divisionsRes);
+            const parliamentsData = getDataFromResponse(parliamentsRes);
+            const assembliesData = getDataFromResponse(assembliesRes);
+            const blocksData = getDataFromResponse(blocksRes);
+            const boothsData = getDataFromResponse(boothsRes);
+            const panchayatsData = getDataFromResponse(panchayatsRes);
+            const villagesData = getDataFromResponse(villagesRes);
+            const falliyasData = getDataFromResponse(falliyasRes);
 
-            const [statesData, divisionsData, parliamentsData, assembliesData, blocksData, boothsData, panchayatsData, villagesData, falliyasData] = await Promise.all([
-                safeParseJson(statesRes),
-                safeParseJson(divisionsRes),
-                safeParseJson(parliamentsRes),
-                safeParseJson(assembliesRes),
-                safeParseJson(blocksRes),
-                safeParseJson(boothsRes),
-                safeParseJson(panchayatsRes),
-                safeParseJson(villagesRes),
-                safeParseJson(falliyasRes)
-            ]);
+            console.log('[Events] Hierarchy data fetched (with user restrictions):', {
+                states: statesData?.length || 0,
+                divisions: divisionsData?.length || 0,
+                parliaments: parliamentsData?.length || 0,
+                assemblies: assembliesData?.length || 0,
+                blocks: blocksData?.length || 0,
+                booths: boothsData?.length || 0,
+                panchayats: panchayatsData?.length || 0,
+                villages: villagesData?.length || 0,
+                falliyas: falliyasData?.length || 0,
+                userHierarchy: userHierarchy
+            });
 
-            if (statesData.success) setStates(statesData.data);
-            if (divisionsData.success) setDivisions(divisionsData.data);
-            if (parliamentsData.success) setParliaments(parliamentsData.data);
-            if (assembliesData.success) setAssemblies(assembliesData.data);
-            if (blocksData.success) setBlocks(blocksData.data);
-            if (boothsData.success) setBooths(boothsData.data);
-            if (panchayatsData.success) setPanchayats(panchayatsData.data);
-            if (villagesData.success) setVillages(villagesData.data);
-            if (falliyasData.success) setFalliyas(falliyasData.data);
-
+            setStates(statesData);
+            setDivisions(divisionsData);
+            setParliaments(parliamentsData);
+            setAssemblies(assembliesData);
+            setBlocks(blocksData);
+            setBooths(boothsData);
+            setPanchayats(panchayatsData);
+            setVillages(villagesData);
+            setFalliyas(falliyasData);
         } catch (error) {
-            console.error('Failed to fetch reference data:', error);
+            console.error('Error fetching reference data:', error);
         }
     };
 
     // Fetch booths with events to mark them on the map
+    // Fetch booths with events to mark them on the map - respecting user hierarchy
     const fetchBoothsWithEvents = async (selectedYear = yearFilter) => {
         try {
-            const token = localStorage.getItem('serviceToken');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            let url = `${import.meta.env.VITE_APP_API_URL}/events?all=true&limit=50000`;
+            let url = '/events?all=true&limit=50000';
             if (selectedYear) url += `&year=${selectedYear}`;
-            const eventsRes = await fetch(url, { headers });
-            const eventsJson = await eventsRes.json();
-            if (eventsJson.success && Array.isArray(eventsJson.data)) {
-                const boothIds = new Set();
-                eventsJson.data.forEach(event => {
-                    if (event.booth_id) {
-                        const boothId = event.booth_id._id || event.booth_id;
-                        boothIds.add(String(boothId));
-                    }
-                });
-                setBoothsWithEvents(boothIds);
-                console.log('✅ Booths with events updated (Year: ' + (selectedYear || 'All') + '):', boothIds.size);
+            
+            // Apply user hierarchy restrictions
+            if (userHierarchy?.state) {
+                url += `&state_id=${userHierarchy.state._id || userHierarchy.state}`;
             }
+            if (userHierarchy?.division) {
+                url += `&division_id=${userHierarchy.division._id || userHierarchy.division}`;
+            }
+            if (userHierarchy?.parliament) {
+                url += `&parliament_id=${userHierarchy.parliament._id || userHierarchy.parliament}`;
+            }
+            if (userHierarchy?.assembly) {
+                url += `&assembly_id=${userHierarchy.assembly._id || userHierarchy.assembly}`;
+            }
+            if (userHierarchy?.block) {
+                url += `&block_id=${userHierarchy.block._id || userHierarchy.block}`;
+            }
+            if (userHierarchy?.booth) {
+                url += `&booth_id=${userHierarchy.booth._id || userHierarchy.booth}`;
+            }
+            
+            const eventsRes = await axiosServices.get(url);
+            const eventsList = eventsRes?.data?.data || [];
+            
+            // Create a Set of booth IDs that have events data
+            const boothIds = new Set();
+            eventsList.forEach(event => {
+                if (event.booth_id) {
+                    const boothId = event.booth_id._id || event.booth_id;
+                    boothIds.add(String(boothId));
+                }
+            });
+            setBoothsWithEvents(boothIds);
+            console.debug('[Events Map] Fetched booths with Events:', boothIds.size, 'year:', selectedYear || 'all');
         } catch (err) {
             console.warn('Failed to fetch booths with events:', err);
         }
@@ -815,11 +898,11 @@ export default function EventListPage() {
         }
     }, [selectedDivision, divisions]);
 
-    // Fetch reference data only once when component mounts
+    // Fetch reference data on mount and when user hierarchy changes
     useEffect(() => {
         fetchReferenceData();
         fetchAllEventsForFilters();
-    }, []);
+    }, [userHierarchy]);
 
     // Extract filter options from actual event data
     const filterOptions = useFilterOptionsFromData(allEvents, {
