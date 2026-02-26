@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { Box, Typography, Alert, Drawer, Stack, Chip, CircularProgress, Collapse } from '@mui/material';
+import { Box, Typography, Alert, Drawer, Stack, Chip, CircularProgress, Collapse, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
@@ -8,6 +8,25 @@ import MapControl from 'components/third-party/map/MapControl';
 import IconButton from 'components/@extended/IconButton';
 import { usePermissions } from 'contexts/PermissionContext';
 import { filterAssembliesByHierarchy } from 'utils/hierarchyUtils';
+
+const partyColors = {
+  'Bharatiya Janata Party': '#FF9933',
+  'Indian National Congress': '#19AAED',
+  'Bahujan Samaj Party': '#004B00',
+  'Aam Aadmi Party': '#0072B5',
+  'Gondwana Ganatantra Party': '#800080',
+  'Independent': '#A9A9A9',
+  'Samajwadi Party': '#FF0000',
+  'Azad Samaj Party': '#FFA500',
+  'Janata Dal': '#008080',
+  'Communist Party of India': '#FF4500',
+  'Bharat Adivasi Party': '#4B0082',
+  'All India Majlis-e-Ittehadul Muslimeen': '#006400',
+  'Communist Party of India (Marxist)': '#8B0000',
+  'Lok Janshakti Party': '#000080',
+  'Other Registered (Unrecognised) Parties': '#696969',
+  'default': '#CCCCCC'
+};
 
 export default function AssemblyMapDashboard() {
     const { userHierarchy } = usePermissions();
@@ -18,6 +37,10 @@ export default function AssemblyMapDashboard() {
     const [assemblyDataMap, setAssemblyDataMap] = useState({});
     const [expandedSections, setExpandedSections] = useState({});
     const [mapZoom, setMapZoom] = useState(5);
+    const [winningCandidates, setWinningCandidates] = useState(null);
+    const [parties, setParties] = useState([]);
+    const [availableYears, setAvailableYears] = useState([]);
+    const [filters, setFilters] = useState({ party: 'all', year: 'all' });
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
@@ -203,22 +226,27 @@ export default function AssemblyMapDashboard() {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
             
-            // Fetch with limit to reduce data size
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?limit=5000`, { headers });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const json = await res.json();
+            const [assemblyRes, candidatesRes] = await Promise.all([
+                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?limit=5000`, { headers }),
+                fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?limit=10000`, { headers })
+            ]);
             
-            if (!json.success || !Array.isArray(json.data)) {
+            if (!assemblyRes.ok || !candidatesRes.ok) throw new Error('Failed to fetch data');
+            
+            const assemblyJson = await assemblyRes.json();
+            const candidatesJson = await candidatesRes.json();
+            
+            if (!assemblyJson.success || !Array.isArray(assemblyJson.data)) {
                 throw new Error('Invalid response format');
             }
 
             const assemblyMap = {};
-            json.data.forEach(assembly => {
+            assemblyJson.data.forEach(assembly => {
                 assemblyMap[assembly._id] = assembly;
             });
             setAssemblyDataMap(assemblyMap);
 
-            let assembliesToUse = filterAssembliesByHierarchy(json.data, userHierarchy);
+            let assembliesToUse = filterAssembliesByHierarchy(assemblyJson.data, userHierarchy);
 
             const features = [];
             assembliesToUse.forEach(assembly => {
@@ -238,6 +266,57 @@ export default function AssemblyMapDashboard() {
                     }
                 }
             });
+
+            // Process candidates
+            const candidates = candidatesJson.data || [];
+            const winningMap = {};
+            const partySet = new Set();
+            const yearSet = new Set();
+            const filteredAcNos = new Set();
+            
+            assembliesToUse.forEach(assembly => {
+                const acNo = assembly.AC_NO || assembly.ac_no || assembly.assembly_no;
+                if (acNo) filteredAcNos.add(acNo);
+            });
+
+            candidates.forEach(candidate => {
+                const acNo = candidate.assembly_id?.AC_NO || candidate.assembly_id?.ac_no || candidate.assembly_no || candidate.AC_NO || candidate.ac_no;
+                
+                if (filteredAcNos.size > 0 && !filteredAcNos.has(acNo)) return;
+                
+                let yearVal = '';
+                if (candidate.year_id) {
+                    if (typeof candidate.year_id === 'object') {
+                        yearVal = candidate.year_id.year?.toString() || candidate.year_id._id?.toString() || '';
+                    } else {
+                        yearVal = candidate.year_id.toString();
+                    }
+                } else if (candidate.year) {
+                    yearVal = candidate.year.toString();
+                }
+                
+                const partyName = candidate.party_id?.name || candidate.party_id?.party_name || candidate.party || 'Unknown';
+                const candidateName = candidate.candidate_id?.name || candidate.candidate_id?.candidate_name || candidate.name || 'Unknown';
+                const margin = candidate.margin || candidate.victory_margin;
+                const totalVotes = candidate.total_votes || candidate.totalVotes || candidate.votes;
+
+                if (acNo && yearVal) {
+                    if (!winningMap[acNo]) winningMap[acNo] = {};
+                    winningMap[acNo][yearVal] = {
+                        candidate: candidateName,
+                        party: partyName,
+                        margin,
+                        totalVotes,
+                        year: yearVal
+                    };
+                    partySet.add(partyName);
+                    yearSet.add(yearVal);
+                }
+            });
+
+            setWinningCandidates(winningMap);
+            setParties(Array.from(partySet).sort());
+            setAvailableYears(Array.from(yearSet).sort((a, b) => b - a));
 
             if (!features.length) {
                 setMapError('No assemblies with polygon data available');
@@ -259,9 +338,102 @@ export default function AssemblyMapDashboard() {
         loadAssemblyPolygons();
     }, [userHierarchy]);
 
+    const enrichedAssemblyData = useMemo(() => {
+        if (!assemblyGeoJSON || !winningCandidates) return assemblyGeoJSON;
+
+        const features = assemblyGeoJSON.features.map((feature, idx) => {
+            const acNo = feature.properties?.AC_NO;
+            const newFeature = { ...feature, properties: { ...feature.properties } };
+            
+            let yearKey = (filters?.year || '').toString();
+            if (yearKey === '' || yearKey === 'all') {
+                const yearsForAc = winningCandidates[acNo] ? Object.keys(winningCandidates[acNo]) : [];
+                yearKey = yearsForAc.length > 0 ? yearsForAc.sort((a, b) => b - a)[0] : null;
+            }
+            
+            let candidate = null;
+            if (acNo && winningCandidates[acNo] && yearKey && winningCandidates[acNo][yearKey]) {
+                candidate = winningCandidates[acNo][yearKey];
+            }
+
+            if (candidate) {
+                newFeature.properties.winningCandidate = candidate.candidate;
+                newFeature.properties.winningParty = candidate.party;
+                newFeature.properties.margin = candidate.margin ?? 'N/A';
+                newFeature.properties.total_votes = candidate.totalVotes ?? 'N/A';
+                newFeature.properties.electionYear = candidate.year;
+            } else {
+                newFeature.properties.winningCandidate = 'No Data';
+                newFeature.properties.winningParty = 'Unknown';
+                newFeature.properties.margin = 'N/A';
+                newFeature.properties.total_votes = 'N/A';
+                newFeature.properties.electionYear = 'N/A';
+            }
+            return newFeature;
+        });
+        
+        return { ...assemblyGeoJSON, features };
+    }, [assemblyGeoJSON, filters.year, winningCandidates]);
+
+    const filteredData = useMemo(() => {
+        if (!enrichedAssemblyData) return null;
+        
+        const filteredFeatures = enrichedAssemblyData.features.filter(feature => {
+            const partyMatch = filters.party === 'all' || feature.properties?.winningParty === filters.party;
+            const yearValue = feature.properties?.electionYear?.toString();
+            const filterYear = filters.year?.toString();
+            const yearMatch = filterYear === 'all' || yearValue === filterYear;
+            return partyMatch && yearMatch;
+        });
+        
+        return { type: 'FeatureCollection', features: filteredFeatures };
+    }, [enrichedAssemblyData, filters]);
+
+    const getColorExpression = () => {
+        const matchExpr = ['match', ['get', 'winningParty']];
+        Object.entries(partyColors).forEach(([party, color]) => {
+            if (party !== 'default') {
+                matchExpr.push(party);
+                matchExpr.push(color);
+            }
+        });
+        matchExpr.push(partyColors['default']);
+        return matchExpr;
+    };
+
     return (
         <Box sx={{ p: 2, pb: 0 }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>Assembly Map</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" sx={{ mb: 0 }}>Assembly Map</Typography>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                    <FormControl size="small" sx={{ minWidth: 160 }}>
+                        <InputLabel>Winning Party</InputLabel>
+                        <Select
+                            value={filters.party}
+                            label="Winning Party"
+                            onChange={(e) => setFilters(prev => ({ ...prev, party: e.target.value }))}
+                        >
+                            <MenuItem value="all">All Parties</MenuItem>
+                            {parties.map(party => (
+                                <MenuItem key={party} value={party}>{party}</MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                    <FormControl size="small" sx={{ minWidth: 140 }}>
+                        <InputLabel>Election Year</InputLabel>
+                        <Select
+                            value={filters.year}
+                            label="Election Year"
+                            onChange={(e) => setFilters(prev => ({ ...prev, year: e.target.value }))}
+                        >
+                            <MenuItem value="all">All Years</MenuItem>
+                            {availableYears.map(year => (
+                                <MenuItem key={year} value={year}>{year}</MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Box>
+            </Box>
             {mapError && <Alert severity="warning" sx={{ mb: 1 }}>{mapError}</Alert>}
             {!assemblyGeoJSON && !mapError && (
                 <Alert severity="info" sx={{ mb: 1 }}>Loading map data...</Alert>
@@ -273,12 +445,12 @@ export default function AssemblyMapDashboard() {
                         mapboxAccessToken={mapboxToken}
                         initialViewState={{ longitude: 77.0, latitude: 23.5, zoom: 5 }}
                         mapStyle="mapbox://styles/mapbox/streets-v12"
-                        interactiveLayerIds={assemblyGeoJSON ? ['assembly-fill'] : []}
+                        interactiveLayerIds={filteredData ? ['assembly-fill'] : []}
                         onZoom={(e) => setMapZoom(e.viewState.zoom)}
                         onClick={(e) => {
-                            if (!assemblyGeoJSON) return;
+                            if (!filteredData) return;
                             try {
-                                const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                                const map = typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current;
                                 const point = e.point || { x: e.originalEvent?.clientX, y: e.originalEvent?.clientY };
                                 let features = e.features || [];
                                 if ((!features || features.length === 0) && map && point) {
@@ -300,15 +472,15 @@ export default function AssemblyMapDashboard() {
                         }}
                     >
                         <MapControl />
-                        {assemblyGeoJSON && (
-                            <Source id="assembly-polygons" type="geojson" data={assemblyGeoJSON}>
-                                <Layer id="assembly-fill" type="fill" paint={{ 'fill-color': '#9C27B0', 'fill-opacity': 0.22 }} />
+                        {filteredData && (
+                            <Source id="assembly-polygons" type="geojson" data={filteredData}>
+                                <Layer id="assembly-fill" type="fill" paint={{ 'fill-color': getColorExpression(), 'fill-opacity': 0.7 }} />
                                 <Layer id="assembly-outline" type="line" paint={{ 'line-color': '#7B1FA2', 'line-width': 2 }} />
                             </Source>
                         )}
-                        {assemblyGeoJSON && assemblyDataMap && mapZoom > 6 && (() => {
+                        {filteredData && mapZoom > 6 && (() => {
                             const labelFeatures = [];
-                            assemblyGeoJSON.features.forEach((feature) => {
+                            filteredData.features.forEach((feature) => {
                                 const assemblyId = feature.properties?.assembly_id;
                                 const assemblyData = assemblyDataMap[assemblyId];
                                 if (!assemblyData || !feature.geometry) return;
