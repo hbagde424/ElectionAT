@@ -86,7 +86,6 @@ export default function BoothVolunteerListPage() {
   const searchDebounceRef = useRef(null);
 
   // Map state (similar to Gender component)
-  const [blockNumberInput, setBlockNumberInput] = useState('ALL');
   const [boothGeoJSON, setBoothGeoJSON] = useState(null);
   const [mapError, setMapError] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -484,124 +483,122 @@ export default function BoothVolunteerListPage() {
     }
   };
 
-  // Map: Load booth polygons by block (similar to Gender component)
-  const loadBoothPolygonsByBlock = async (blockVal) => {
-    console.log('loadBoothPolygonsByBlock called with', blockVal);
-    if (!blockVal) {
-      setMapError('Please select Block');
-      return;
-    }
-    setMapError('');
+  // Map: Load booth polygons filtered by user access (like booth CRUD page)
+  const loadBoothPolygons = async () => {
     try {
       const headers = getAuthHeaders();
+      
+      // Fetch all booths
+      const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`, { headers });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      
+      if (!json.success || !Array.isArray(json.data)) {
+        throw new Error('Invalid response format');
+      }
 
-      fetchBoothsWithVolunteers();
+      // Filter booths based on user hierarchy (most specific first)
+      let boothsToUse = json.data;
+      if (userHierarchy?.booth) {
+        boothsToUse = json.data.filter(b => String(b._id) === String(userHierarchy.booth._id || userHierarchy.booth));
+      } else if (userHierarchy?.block) {
+        boothsToUse = json.data.filter(b => String(b.block_id?._id || b.block_id) === String(userHierarchy.block._id || userHierarchy.block));
+      } else if (userHierarchy?.assembly) {
+        boothsToUse = json.data.filter(b => String(b.assembly_id?._id || b.assembly_id) === String(userHierarchy.assembly._id || userHierarchy.assembly));
+      } else if (userHierarchy?.parliament) {
+        boothsToUse = json.data.filter(b => String(b.parliament_id?._id || b.parliament_id) === String(userHierarchy.parliament._id || userHierarchy.parliament));
+      } else if (userHierarchy?.division) {
+        boothsToUse = json.data.filter(b => String(b.division_id?._id || b.division_id) === String(userHierarchy.division._id || userHierarchy.division));
+      } else if (userHierarchy?.state) {
+        boothsToUse = json.data.filter(b => String(b.state_id?._id || b.state_id) === String(userHierarchy.state._id || userHierarchy.state));
+      }
 
-      if (blockVal === 'ALL') {
-        const apiUrl = import.meta.env.VITE_APP_API_URL || '';
-        const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
-        console.log('Loading ALL booth polygons from', url);
-        const resp = await fetch(url, { headers });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const j = await resp.json();
-        let features = j.features || j.data || [];
-        if (features.length === 1 && features[0] && features[0].features && Array.isArray(features[0].features)) {
-          features = features[0].features;
-        }
-        if (!features || !Array.isArray(features) || features.length === 0) {
-          setMapError('No booth polygons found');
-          setBoothGeoJSON(null);
-          return;
-        }
-        const fc = { type: 'FeatureCollection', features };
-        console.log('Loaded features count (ALL):', features.length);
-        setBoothGeoJSON(fc);
+      console.log('📍 Filtered booths for user access:', boothsToUse.length, 'out of', json.data.length);
 
-        // Clear any existing timeout
-        if (globalFitBoundsTimeoutRef.current) {
-          clearTimeout(globalFitBoundsTimeoutRef.current);
-        }
+      // Fetch volunteers to get list of booths with data
+      const volunteersRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/volunteers?all=true&limit=50000`, { headers });
+      const volunteersJson = await volunteersRes.json();
+      const boothsWithVolunteers = new Set();
+      if (volunteersJson.success && Array.isArray(volunteersJson.data)) {
+        volunteersJson.data.forEach(volunteer => {
+          if (volunteer.booth_id) {
+            boothsWithVolunteers.add(String(volunteer.booth_id._id || volunteer.booth_id));
+          }
+        });
+      }
+      console.log('📊 Booths with volunteer data:', boothsWithVolunteers.size);
 
-        globalFitBoundsTimeoutRef.current = setTimeout(() => {
-          try {
-            const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-            if (!map || !fc.features?.length) return;
-            const coords = [];
-            fc.features.forEach(f => {
-              const geom = f.geometry;
-              if (!geom) return;
-              const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
-              if (geom.type === 'Polygon') collect(geom.coordinates);
-              if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+      // Extract polygons from booths that have polygon data AND have volunteer data
+      const features = [];
+      boothsToUse.forEach(booth => {
+        // Only include booths that have volunteer data
+        if (booth.polygon && boothsWithVolunteers.has(String(booth._id))) {
+          let featureToAdd = null;
+          
+          if (booth.polygon.type === 'Feature') {
+            featureToAdd = {
+              ...booth.polygon,
+              properties: {
+                booth_id: booth._id,
+                booth_number: booth.booth_number,
+                booth_name: booth.name
+              }
+            };
+          } else if (booth.polygon.type === 'FeatureCollection' && Array.isArray(booth.polygon.features)) {
+            booth.polygon.features.forEach(feat => {
+              features.push({
+                ...feat,
+                properties: {
+                  booth_id: booth._id,
+                  booth_number: booth.booth_number,
+                  booth_name: booth.name
+                }
+              });
             });
-            if (coords.length) {
-              try {
-                if (Date.now() - (lastAutoZoomRef.current || 0) < 2000) {
-                  console.log('Skipping global fitBounds because of recent user auto-zoom');
-                  return;
-                }
-                if (userHasZoomedRef.current) {
-                  console.log('Skipping global fitBounds because user has manually zoomed');
-                  return;
-                }
-              } catch { }
-              const lons = coords.map(c => c[0]);
-              const lats = coords.map(c => c[1]);
-              const bounds = [
-                [Math.min(...lons), Math.min(...lats)],
-                [Math.max(...lons), Math.max(...lats)]
-              ];
-              console.log('Executing global fitBounds for ALL polygons');
-              map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
-            }
-          } catch { }
-        }, 100);
-        return;
-      }
-
-      const candidates = [
-        `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block/${encodeURIComponent(blockVal)}`,
-        `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${encodeURIComponent(blockVal)}`,
-        `${import.meta.env.VITE_APP_API_URL}/booth-polygons?block=${encodeURIComponent(blockVal)}`
-      ];
-
-      let json = null;
-      for (const url of candidates) {
-        try {
-          console.log('Trying polygon candidate URL:', url);
-          const resp = await fetch(url, { headers });
-          if (!resp.ok) {
-            continue;
+            return;
           }
-          const j = await resp.json();
-          const features = j.features || (Array.isArray(j) ? j : (j.data || null));
-          if (features && Array.isArray(features) && features.length > 0) {
-            console.log('Found polygon features at:', url, 'count=', features.length);
-            json = { type: 'FeatureCollection', features };
-            break;
+          
+          if (featureToAdd) {
+            features.push(featureToAdd);
           }
-        } catch (e) { }
-      }
+        }
+      });
 
-      if (!json) {
-        setMapError(`No booth polygons found for block '${blockVal}'`);
+      if (!features.length) {
+        setMapError('No booth polygons found with volunteer data for your access level');
         setBoothGeoJSON(null);
         return;
       }
 
-      const fc = { type: 'FeatureCollection', features: json.features };
-      console.log('Setting boothGeoJSON features count:', fc.features.length);
+      const fc = { type: 'FeatureCollection', features };
+      console.log('✅ Loaded booth polygons with data:', features.length);
       setBoothGeoJSON(fc);
+      setMapError('');
 
-      // Clear any existing timeout
-      if (globalFitBoundsTimeoutRef.current) {
-        clearTimeout(globalFitBoundsTimeoutRef.current);
-      }
+      // Fetch booths with volunteers for marker colors
+      fetchBoothsWithVolunteers();
 
-      globalFitBoundsTimeoutRef.current = setTimeout(() => {
+      // Auto-fit map to polygons with retry logic
+      const fitMapBounds = (attempt = 0) => {
         try {
           const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-          if (!map || !fc.features?.length) return;
+          
+          if (!map || !map.getStyle) {
+            // Map not ready yet, retry
+            if (attempt < 10) {
+              console.log(`⏳ Map not ready, retrying... (attempt ${attempt + 1}/10)`);
+              setTimeout(() => fitMapBounds(attempt + 1), 200);
+            } else {
+              console.warn('❌ Map failed to initialize after 10 retries');
+            }
+            return;
+          }
+          
+          if (!fc.features?.length) {
+            console.warn('⚠️ No features to fit bounds');
+            return;
+          }
+          
           const coords = [];
           fc.features.forEach(f => {
             const geom = f.geometry;
@@ -610,28 +607,34 @@ export default function BoothVolunteerListPage() {
             if (geom.type === 'Polygon') collect(geom.coordinates);
             if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
           });
-          if (coords.length) {
-            try {
-              if (Date.now() - (lastAutoZoomRef.current || 0) < 2000) {
-                console.log('Skipping global fitBounds because of recent user auto-zoom');
-                return;
-              }
-              if (userHasZoomedRef.current) {
-                console.log('Skipping global fitBounds because user has manually zoomed');
-                return;
-              }
-            } catch { }
-            const lons = coords.map(c => c[0]);
-            const lats = coords.map(c => c[1]);
-            const bounds = [
-              [Math.min(...lons), Math.min(...lats)],
-              [Math.max(...lons), Math.max(...lats)]
-            ];
-            console.log('Executing global fitBounds for block polygons');
-            map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+          
+          if (!coords.length) {
+            console.warn('⚠️ No coordinates found in features');
+            return;
           }
-        } catch { }
-      }, 100);
+
+          const lons = coords.map(c => c[0]);
+          const lats = coords.map(c => c[1]);
+          const bounds = [
+            [Math.min(...lons), Math.min(...lats)],
+            [Math.max(...lons), Math.max(...lats)]
+          ];
+          
+          console.log('🎯 Fitting map bounds:', bounds);
+          map.fitBounds(bounds, { padding: 40, maxZoom: 15, duration: 1000 });
+        } catch (e) {
+          console.warn('Auto-fit bounds error:', e);
+          if (attempt < 10) {
+            setTimeout(() => fitMapBounds(attempt + 1), 200);
+          }
+        }
+      };
+
+      // Start fitting bounds after a short delay to ensure map is ready
+      if (globalFitBoundsTimeoutRef.current) {
+        clearTimeout(globalFitBoundsTimeoutRef.current);
+      }
+      globalFitBoundsTimeoutRef.current = setTimeout(() => fitMapBounds(), 300);
     } catch (e) {
       console.error('Failed to load booth polygons:', e);
       setMapError(`Failed to load booth polygons: ${e.message}`);
@@ -639,20 +642,60 @@ export default function BoothVolunteerListPage() {
     }
   };
 
-  // Auto-load ALL blocks map on component mount (only once)
-  const mapLoadedRef = useRef(false);
-  const boothGeoJSONRef = useRef(null);
-
+  // Auto-load polygons on component mount and when user hierarchy changes
   useEffect(() => {
-    if (mapboxToken && blocks && blocks.length > 0 && !mapLoadedRef.current) {
-      loadBoothPolygonsByBlock('ALL');
-      mapLoadedRef.current = true;
+    if (mapboxToken) {
+      loadBoothPolygons();
     }
-  }, [blocks, mapboxToken]);
+  }, [mapboxToken, userHierarchy]);
 
-  // Track boothGeoJSON changes and prevent unwanted fitBounds
+  // Fit bounds when boothGeoJSON changes
   useEffect(() => {
-    boothGeoJSONRef.current = boothGeoJSON;
+    if (!boothGeoJSON?.features?.length) return;
+
+    const fitMapBounds = (attempt = 0) => {
+      try {
+        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+        
+        if (!map || !map.getStyle) {
+          if (attempt < 10) {
+            console.log(`⏳ Map not ready for fitBounds, retrying... (attempt ${attempt + 1}/10)`);
+            setTimeout(() => fitMapBounds(attempt + 1), 200);
+          }
+          return;
+        }
+        
+        const coords = [];
+        boothGeoJSON.features.forEach(f => {
+          const geom = f.geometry;
+          if (!geom) return;
+          const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
+          if (geom.type === 'Polygon') collect(geom.coordinates);
+          if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+        });
+        
+        if (!coords.length) return;
+
+        const lons = coords.map(c => c[0]);
+        const lats = coords.map(c => c[1]);
+        const bounds = [
+          [Math.min(...lons), Math.min(...lats)],
+          [Math.max(...lons), Math.max(...lats)]
+        ];
+        
+        console.log('🎯 Fitting map bounds from useEffect:', bounds);
+        map.fitBounds(bounds, { padding: 40, maxZoom: 15, duration: 1000 });
+      } catch (e) {
+        console.warn('fitBounds error:', e);
+        if (attempt < 10) {
+          setTimeout(() => fitMapBounds(attempt + 1), 200);
+        }
+      }
+    };
+
+    // Delay to ensure map is fully rendered
+    const timeoutId = setTimeout(() => fitMapBounds(), 500);
+    return () => clearTimeout(timeoutId);
   }, [boothGeoJSON]);
 
   // Prevent navigation from map links (Mapbox attribution, etc.)
@@ -1040,10 +1083,23 @@ export default function BoothVolunteerListPage() {
           maxWidth: 150,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap'
+          whiteSpace: 'nowrap',
+          fontWeight: 500
         }}>
           {getValue()}
         </Typography>
+      )
+    },
+    {
+      header: 'Role',
+      accessorKey: 'role',
+      cell: ({ getValue }) => (
+        <Chip
+          label={getValue() || 'N/A'}
+          size="small"
+          color={getValue() ? 'primary' : 'default'}
+          variant="outlined"
+        />
       )
     },
     {
@@ -1066,33 +1122,8 @@ export default function BoothVolunteerListPage() {
       )
     },
     {
-      header: 'Role',
-      accessorKey: 'role',
-      cell: ({ getValue }) => (
-        <Chip
-          label={getValue() || 'N/A'}
-          size="small"
-          variant="outlined"
-        />
-      )
-    },
-    {
       header: 'Area Responsibility',
       accessorKey: 'area_responsibility',
-      cell: ({ getValue }) => (
-        <Typography sx={{
-          maxWidth: 150,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap'
-        }}>
-          {getValue() || 'N/A'}
-        </Typography>
-      )
-    },
-    {
-      header: 'Post',
-      accessorKey: 'post',
       cell: ({ getValue }) => (
         <Typography sx={{
           maxWidth: 150,
@@ -1119,71 +1150,11 @@ export default function BoothVolunteerListPage() {
       )
     },
     {
-      header: 'State',
-      accessorKey: 'state',
-      cell: ({ getValue }) => (
-        <Chip
-          label={getValue()?.name || 'N/A'}
-          color="primary"
-          size="small"
-          variant="outlined"
-        />
-      )
-    },
-    {
-      header: 'Division',
-      accessorKey: 'division',
-      cell: ({ getValue }) => (
-        <Chip
-          label={getValue()?.name || 'N/A'}
-          color="warning"
-          size="small"
-          variant="outlined"
-        />
-      )
-    },
-    {
-      header: 'Parliament',
-      accessorKey: 'parliament',
-      cell: ({ getValue }) => (
-        <Chip
-          label={getValue()?.name || 'N/A'}
-          color="secondary"
-          size="small"
-          variant="outlined"
-        />
-      )
-    },
-    {
-      header: 'Assembly',
-      accessorKey: 'assembly',
-      cell: ({ getValue }) => (
-        <Chip
-          label={getValue()?.name || 'N/A'}
-          color="info"
-          size="small"
-          variant="outlined"
-        />
-      )
-    },
-    {
-      header: 'Block',
-      accessorKey: 'block',
-      cell: ({ getValue }) => (
-        <Chip
-          label={getValue()?.name || 'N/A'}
-          color="primary"
-          size="small"
-          variant="outlined"
-        />
-      )
-    },
-    {
       header: 'Booth',
       accessorKey: 'booth',
       cell: ({ getValue }) => (
         <Chip
-          label={getValue() ? `${getValue().name} (${getValue().booth_number})` : 'N/A'}
+          label={getValue() ? `${getValue().booth_number}` : 'N/A'}
           color="success"
           size="small"
           variant="outlined"
@@ -1200,11 +1171,11 @@ export default function BoothVolunteerListPage() {
       )
     },
     {
-      header: 'Remarks',
-      accessorKey: 'remarks',
+      header: 'Post',
+      accessorKey: 'post',
       cell: ({ getValue }) => (
         <Typography sx={{
-          maxWidth: 150,
+          maxWidth: 120,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap'
@@ -1214,47 +1185,18 @@ export default function BoothVolunteerListPage() {
       )
     },
     {
-      header: 'Documents',
-      accessorKey: 'documents',
+      header: 'Remarks',
+      accessorKey: 'remarks',
       cell: ({ getValue }) => (
-        <Chip
-          label={getValue() ? `${getValue().length} files` : '0 files'}
-          color={getValue() && getValue().length > 0 ? 'primary' : 'default'}
-          size="small"
-          variant="outlined"
-        />
-      )
-    },
-    {
-      header: 'Created By',
-      accessorKey: 'created_by',
-      cell: ({ getValue }) => (
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Avatar sx={{ width: 24, height: 24 }}>
-            <User size={16} />
-          </Avatar>
-          <Typography>{getValue()?.username || 'Unknown'}</Typography>
-        </Stack>
-      )
-    },
-    {
-      header: 'Updated By',
-      accessorKey: 'updated_by',
-      cell: ({ getValue }) => (
-        <Typography>
-          {getValue()?.username || 'N/A'}
+        <Typography sx={{
+          maxWidth: 120,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {getValue() || 'N/A'}
         </Typography>
       )
-    },
-    {
-      header: 'Created At',
-      accessorKey: 'created_at',
-      cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
-    },
-    {
-      header: 'Updated At',
-      accessorKey: 'updated_at',
-      cell: ({ getValue }) => <Typography>{formatDate(getValue())}</Typography>
     },
     {
       header: 'Actions',
@@ -1495,30 +1437,8 @@ export default function BoothVolunteerListPage() {
       <MainCard content={false}>
         {/* Map section above the table */}
         <Box sx={{ p: 2, pb: 0 }}>
-          <Typography variant="h6" sx={{ mb: 1 }}>Booth Map</Typography>
+          <Typography variant="h6" sx={{ mb: 1 }}>Booth Map (Showing booths accessible to you)</Typography>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1, flexWrap: 'wrap' }}>
-            <TextField
-              select
-              size="small"
-              label="Block"
-              value={blockNumberInput}
-              onChange={(e) => {
-                try { e.preventDefault && e.preventDefault(); } catch { };
-                try { e.stopPropagation && e.stopPropagation(); } catch { };
-                setBlockNumberInput(e.target.value);
-              }}
-              sx={{ minWidth: 260 }}
-            >
-              <MenuItem value="">Select Block</MenuItem>
-              <MenuItem value="ALL">All Blocks</MenuItem>
-              {blocks?.map((b) => (
-                <MenuItem key={b._id} value={b.name || b.block_number || b._id}>{b.block_number ? `#${b.block_number} — ${b.name}` : b.name}</MenuItem>
-              ))}
-            </TextField>
-            <Button variant="contained" size="small" onClick={() => {
-              userHasZoomedRef.current = false;
-              loadBoothPolygonsByBlock(blockNumberInput);
-            }}>Load Polygons</Button>
             <TextField
               select
               size="small"

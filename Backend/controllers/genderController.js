@@ -35,25 +35,27 @@ exports.getGenders = async (req, res, next) => {
     // Apply user hierarchy scoping when available (booth->block->assembly->parliament->division->state)
     if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
       const h = req.userHierarchy;
-      const boothId = h.booth?._id || h.booth;
-      const blockId = h.block?._id || h.block;
-      const assemblyId = h.assembly?._id || h.assembly;
-      const parliamentId = h.parliament?._id || h.parliament;
-      const divisionId = h.division?._id || h.division;
-      const stateId = h.state?._id || h.state;
+      
+      // Get the most specific access level (booth > block > assembly > parliament > division > state)
+      const boothIds = h.booth_ids && h.booth_ids.length > 0 ? h.booth_ids.map(b => b._id || b) : [];
+      const blockIds = h.block_ids && h.block_ids.length > 0 ? h.block_ids.map(b => b._id || b) : [];
+      const assemblyIds = h.assembly_ids && h.assembly_ids.length > 0 ? h.assembly_ids.map(a => a._id || a) : [];
+      const parliamentIds = h.parliament_ids && h.parliament_ids.length > 0 ? h.parliament_ids.map(p => p._id || p) : [];
+      const divisionIds = h.division_ids && h.division_ids.length > 0 ? h.division_ids.map(d => d._id || d) : [];
+      const stateIds = h.state_ids && h.state_ids.length > 0 ? h.state_ids.map(s => s._id || s) : [];
 
-      if (boothId) {
-        query = query.where('booth_id').equals(boothId);
-      } else if (blockId) {
-        query = query.where('block_id').equals(blockId);
-      } else if (assemblyId) {
-        query = query.where('assembly_id').equals(assemblyId);
-      } else if (parliamentId) {
-        query = query.where('parliament_id').equals(parliamentId);
-      } else if (divisionId) {
-        query = query.where('division_id').equals(divisionId);
-      } else if (stateId) {
-        query = query.where('state_id').equals(stateId);
+      if (boothIds.length > 0) {
+        query = query.where('booth_id').in(boothIds);
+      } else if (blockIds.length > 0) {
+        query = query.where('block_id').in(blockIds);
+      } else if (assemblyIds.length > 0) {
+        query = query.where('assembly_id').in(assemblyIds);
+      } else if (parliamentIds.length > 0) {
+        query = query.where('parliament_id').in(parliamentIds);
+      } else if (divisionIds.length > 0) {
+        query = query.where('division_id').in(divisionIds);
+      } else if (stateIds.length > 0) {
+        query = query.where('state_id').in(stateIds);
       }
     }
 
@@ -215,29 +217,33 @@ exports.getGender = async (req, res, next) => {
     // Enforce scope for single resource if userHierarchy present
     if (req.userHierarchy && !(req.user && req.user.role === 'superAdmin')) {
       const h = req.userHierarchy;
-      const boothId = h.booth?._id || h.booth;
-      const blockId = h.block?._id || h.block;
-      const assemblyId = h.assembly?._id || h.assembly;
-      const parliamentId = h.parliament?._id || h.parliament;
-      const divisionId = h.division?._id || h.division;
-      const stateId = h.state?._id || h.state;
+      
+      // Get the most specific access level (booth > block > assembly > parliament > division > state)
+      const boothIds = h.booth_ids && h.booth_ids.length > 0 ? h.booth_ids.map(b => String(b._id || b)) : [];
+      const blockIds = h.block_ids && h.block_ids.length > 0 ? h.block_ids.map(b => String(b._id || b)) : [];
+      const assemblyIds = h.assembly_ids && h.assembly_ids.length > 0 ? h.assembly_ids.map(a => String(a._id || a)) : [];
+      const parliamentIds = h.parliament_ids && h.parliament_ids.length > 0 ? h.parliament_ids.map(p => String(p._id || p)) : [];
+      const divisionIds = h.division_ids && h.division_ids.length > 0 ? h.division_ids.map(d => String(d._id || d)) : [];
+      const stateIds = h.state_ids && h.state_ids.length > 0 ? h.state_ids.map(s => String(s._id || s)) : [];
 
-      if (boothId && gender.booth_id && String(boothId) !== String(gender.booth_id)) {
-        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
+      // Check if gender record is within user's scope
+      let isInScope = false;
+      
+      if (boothIds.length > 0) {
+        isInScope = gender.booth_id && boothIds.includes(String(gender.booth_id._id || gender.booth_id));
+      } else if (blockIds.length > 0) {
+        isInScope = gender.block_id && blockIds.includes(String(gender.block_id._id || gender.block_id));
+      } else if (assemblyIds.length > 0) {
+        isInScope = gender.assembly_id && assemblyIds.includes(String(gender.assembly_id._id || gender.assembly_id));
+      } else if (parliamentIds.length > 0) {
+        isInScope = gender.parliament_id && parliamentIds.includes(String(gender.parliament_id._id || gender.parliament_id));
+      } else if (divisionIds.length > 0) {
+        isInScope = gender.division_id && divisionIds.includes(String(gender.division_id._id || gender.division_id));
+      } else if (stateIds.length > 0) {
+        isInScope = gender.state_id && stateIds.includes(String(gender.state_id._id || gender.state_id));
       }
-      if (blockId && gender.block_id && String(blockId) !== String(gender.block_id)) {
-        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
-      }
-      if (assemblyId && gender.assembly_id && String(assemblyId) !== String(gender.assembly_id)) {
-        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
-      }
-      if (parliamentId && gender.parliament_id && String(parliamentId) !== String(gender.parliament_id)) {
-        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
-      }
-      if (divisionId && gender.division_id && String(divisionId) !== String(gender.division_id)) {
-        return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
-      }
-      if (stateId && gender.state_id && String(stateId) !== String(gender.state_id)) {
+
+      if (!isInScope) {
         return res.status(403).json({ success: false, message: 'Forbidden: outside your scope' });
       }
     }

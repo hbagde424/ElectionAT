@@ -36,18 +36,39 @@ exports.getLocalIssues = async (req, res, next) => {
     try {
       if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
         const h = req.userHierarchy;
-        if (h.booth_id) {
-          query = query.where('booth_id').equals(h.booth_id);
-        } else if (h.block_id) {
-          query = query.where('block_id').equals(h.block_id);
-        } else if (h.assembly_id) {
-          query = query.where('assembly_id').equals(h.assembly_id);
-        } else if (h.parliament_id) {
-          query = query.where('parliament_id').equals(h.parliament_id);
-        } else if (h.division_id) {
-          query = query.where('division_id').equals(h.division_id);
-        } else if (h.state_id) {
-          query = query.where('state_id').equals(h.state_id);
+        
+        // Get the most specific access level (booth > block > assembly > parliament > division > state)
+        const boothIds = h.booth_ids && h.booth_ids.length > 0 
+            ? h.booth_ids.map(b => b._id || b) 
+            : [];
+        const blockIds = h.block_ids && h.block_ids.length > 0 
+            ? h.block_ids.map(b => b._id || b) 
+            : [];
+        const assemblyIds = h.assembly_ids && h.assembly_ids.length > 0 
+            ? h.assembly_ids.map(a => a._id || a) 
+            : [];
+        const parliamentIds = h.parliament_ids && h.parliament_ids.length > 0 
+            ? h.parliament_ids.map(p => p._id || p) 
+            : [];
+        const divisionIds = h.division_ids && h.division_ids.length > 0 
+            ? h.division_ids.map(d => d._id || d) 
+            : [];
+        const stateIds = h.state_ids && h.state_ids.length > 0 
+            ? h.state_ids.map(s => s._id || s) 
+            : [];
+
+        if (boothIds.length > 0) {
+          query = query.where('booth_id').in(boothIds);
+        } else if (blockIds.length > 0) {
+          query = query.where('block_id').in(blockIds);
+        } else if (assemblyIds.length > 0) {
+          query = query.where('assembly_id').in(assemblyIds);
+        } else if (parliamentIds.length > 0) {
+          query = query.where('parliament_id').in(parliamentIds);
+        } else if (divisionIds.length > 0) {
+          query = query.where('division_id').in(divisionIds);
+        } else if (stateIds.length > 0) {
+          query = query.where('state_id').in(stateIds);
         }
       }
     } catch (e) {
@@ -228,13 +249,47 @@ exports.getLocalIssue = async (req, res, next) => {
     // Enforce scope on single resource for non-superAdmin users
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      const outOfScope = (h.booth_id && localIssue.booth_id && localIssue.booth_id.toString() !== h.booth_id)
-        || (h.block_id && localIssue.block_id && localIssue.block_id.toString() !== h.block_id)
-        || (h.assembly_id && localIssue.assembly_id && localIssue.assembly_id.toString() !== h.assembly_id)
-        || (h.parliament_id && localIssue.parliament_id && localIssue.parliament_id.toString() !== h.parliament_id)
-        || (h.division_id && localIssue.division_id && localIssue.division_id.toString() !== h.division_id)
-        || (h.state_id && localIssue.state_id && localIssue.state_id.toString() !== h.state_id);
-      if (outOfScope) return res.status(403).json({ success: false, error: 'Forbidden' });
+      
+      // Get the most specific access level (booth > block > assembly > parliament > division > state)
+      const boothIds = h.booth_ids && h.booth_ids.length > 0 
+          ? h.booth_ids.map(b => String(b._id || b)) 
+          : [];
+      const blockIds = h.block_ids && h.block_ids.length > 0 
+          ? h.block_ids.map(b => String(b._id || b)) 
+          : [];
+      const assemblyIds = h.assembly_ids && h.assembly_ids.length > 0 
+          ? h.assembly_ids.map(a => String(a._id || a)) 
+          : [];
+      const parliamentIds = h.parliament_ids && h.parliament_ids.length > 0 
+          ? h.parliament_ids.map(p => String(p._id || p)) 
+          : [];
+      const divisionIds = h.division_ids && h.division_ids.length > 0 
+          ? h.division_ids.map(d => String(d._id || d)) 
+          : [];
+      const stateIds = h.state_ids && h.state_ids.length > 0 
+          ? h.state_ids.map(s => String(s._id || s)) 
+          : [];
+
+      // Check if local issue record is within user's scope
+      let isInScope = false;
+      
+      if (boothIds.length > 0) {
+        isInScope = localIssue.booth_id && boothIds.includes(String(localIssue.booth_id._id || localIssue.booth_id));
+      } else if (blockIds.length > 0) {
+        isInScope = localIssue.block_id && blockIds.includes(String(localIssue.block_id._id || localIssue.block_id));
+      } else if (assemblyIds.length > 0) {
+        isInScope = localIssue.assembly_id && assemblyIds.includes(String(localIssue.assembly_id._id || localIssue.assembly_id));
+      } else if (parliamentIds.length > 0) {
+        isInScope = localIssue.parliament_id && parliamentIds.includes(String(localIssue.parliament_id._id || localIssue.parliament_id));
+      } else if (divisionIds.length > 0) {
+        isInScope = localIssue.division_id && divisionIds.includes(String(localIssue.division_id._id || localIssue.division_id));
+      } else if (stateIds.length > 0) {
+        isInScope = localIssue.state_id && stateIds.includes(String(localIssue.state_id._id || localIssue.state_id));
+      }
+
+      if (!isInScope) {
+        return res.status(403).json({ success: false, error: 'Forbidden' });
+      }
     }
 
     res.status(200).json({

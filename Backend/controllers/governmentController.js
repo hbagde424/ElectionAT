@@ -35,26 +35,39 @@ exports.getGovernments = async (req, res, next) => {
     try {
       if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
         const h = req.userHierarchy;
-        // Extract IDs from populated objects or direct ID values
-        const boothId = h.booth?._id || h.booth;
-        const blockId = h.block?._id || h.block;
-        const assemblyId = h.assembly?._id || h.assembly;
-        const parliamentId = h.parliament?._id || h.parliament;
-        const divisionId = h.division?._id || h.division;
-        const stateId = h.state?._id || h.state;
+        
+        // Get the most specific access level (booth > block > assembly > parliament > division > state)
+        const boothIds = h.booth_ids && h.booth_ids.length > 0 
+            ? h.booth_ids.map(b => b._id || b) 
+            : [];
+        const blockIds = h.block_ids && h.block_ids.length > 0 
+            ? h.block_ids.map(b => b._id || b) 
+            : [];
+        const assemblyIds = h.assembly_ids && h.assembly_ids.length > 0 
+            ? h.assembly_ids.map(a => a._id || a) 
+            : [];
+        const parliamentIds = h.parliament_ids && h.parliament_ids.length > 0 
+            ? h.parliament_ids.map(p => p._id || p) 
+            : [];
+        const divisionIds = h.division_ids && h.division_ids.length > 0 
+            ? h.division_ids.map(d => d._id || d) 
+            : [];
+        const stateIds = h.state_ids && h.state_ids.length > 0 
+            ? h.state_ids.map(s => s._id || s) 
+            : [];
 
-        if (boothId) {
-          query = query.where('booth_id').equals(boothId);
-        } else if (blockId) {
-          query = query.where('block_id').equals(blockId);
-        } else if (assemblyId) {
-          query = query.where('assembly_id').equals(assemblyId);
-        } else if (parliamentId) {
-          query = query.where('parliament_id').equals(parliamentId);
-        } else if (divisionId) {
-          query = query.where('division_id').equals(divisionId);
-        } else if (stateId) {
-          query = query.where('state_id').equals(stateId);
+        if (boothIds.length > 0) {
+          query = query.where('booth_id').in(boothIds);
+        } else if (blockIds.length > 0) {
+          query = query.where('block_id').in(blockIds);
+        } else if (assemblyIds.length > 0) {
+          query = query.where('assembly_id').in(assemblyIds);
+        } else if (parliamentIds.length > 0) {
+          query = query.where('parliament_id').in(parliamentIds);
+        } else if (divisionIds.length > 0) {
+          query = query.where('division_id').in(divisionIds);
+        } else if (stateIds.length > 0) {
+          query = query.where('state_id').in(stateIds);
         }
       }
     } catch (e) {
@@ -169,21 +182,47 @@ exports.getGovernment = async (req, res, next) => {
     // Enforce single-resource scope for non-superAdmin users if hierarchy present
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      // Extract IDs from populated objects or direct ID values
-      const boothId = h.booth?._id || h.booth;
-      const blockId = h.block?._id || h.block;
-      const assemblyId = h.assembly?._id || h.assembly;
-      const parliamentId = h.parliament?._id || h.parliament;
-      const divisionId = h.division?._id || h.division;
-      const stateId = h.state?._id || h.state;
+      
+      // Get the most specific access level (booth > block > assembly > parliament > division > state)
+      const boothIds = h.booth_ids && h.booth_ids.length > 0 
+          ? h.booth_ids.map(b => String(b._id || b)) 
+          : [];
+      const blockIds = h.block_ids && h.block_ids.length > 0 
+          ? h.block_ids.map(b => String(b._id || b)) 
+          : [];
+      const assemblyIds = h.assembly_ids && h.assembly_ids.length > 0 
+          ? h.assembly_ids.map(a => String(a._id || a)) 
+          : [];
+      const parliamentIds = h.parliament_ids && h.parliament_ids.length > 0 
+          ? h.parliament_ids.map(p => String(p._id || p)) 
+          : [];
+      const divisionIds = h.division_ids && h.division_ids.length > 0 
+          ? h.division_ids.map(d => String(d._id || d)) 
+          : [];
+      const stateIds = h.state_ids && h.state_ids.length > 0 
+          ? h.state_ids.map(s => String(s._id || s)) 
+          : [];
 
-      const outOfScope = (boothId && government.booth_id && government.booth_id.toString() !== boothId.toString())
-        || (blockId && government.block_id && government.block_id.toString() !== blockId.toString())
-        || (assemblyId && government.assembly_id && government.assembly_id.toString() !== assemblyId.toString())
-        || (parliamentId && government.parliament_id && government.parliament_id.toString() !== parliamentId.toString())
-        || (divisionId && government.division_id && government.division_id.toString() !== divisionId.toString())
-        || (stateId && government.state_id && government.state_id.toString() !== stateId.toString());
-      if (outOfScope) return res.status(403).json({ success: false, error: 'Forbidden' });
+      // Check if government record is within user's scope
+      let isInScope = false;
+      
+      if (boothIds.length > 0) {
+        isInScope = government.booth_id && boothIds.includes(String(government.booth_id._id || government.booth_id));
+      } else if (blockIds.length > 0) {
+        isInScope = government.block_id && blockIds.includes(String(government.block_id._id || government.block_id));
+      } else if (assemblyIds.length > 0) {
+        isInScope = government.assembly_id && assemblyIds.includes(String(government.assembly_id._id || government.assembly_id));
+      } else if (parliamentIds.length > 0) {
+        isInScope = government.parliament_id && parliamentIds.includes(String(government.parliament_id._id || government.parliament_id));
+      } else if (divisionIds.length > 0) {
+        isInScope = government.division_id && divisionIds.includes(String(government.division_id._id || government.division_id));
+      } else if (stateIds.length > 0) {
+        isInScope = government.state_id && stateIds.includes(String(government.state_id._id || government.state_id));
+      }
+
+      if (!isInScope) {
+        return res.status(403).json({ success: false, error: 'Forbidden' });
+      }
     }
 
     res.status(200).json({

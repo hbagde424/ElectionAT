@@ -12,15 +12,16 @@ const {
 } = require('../controllers/bloController');
 
 const { protect } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 // Apply authentication to all routes
 router.use(protect);
 
 // GET /api/blos - Get all BLOs with filtering and pagination
-router.get('/', getBLOs);
+router.get('/', getUserPermissionsAndHierarchy, getBLOs);
 
 // GET /api/blos/:id - Get single BLO by ID
-router.get('/:id', getBLOById);
+router.get('/:id', getUserPermissionsAndHierarchy, getBLOById);
 
 // POST /api/blos - Create new BLO
 router.post('/', createBLO);

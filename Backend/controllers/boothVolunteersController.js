@@ -147,6 +147,44 @@ exports.getBoothVolunteers = async (req, res, next) => {
       if (boothId) filter.booth_id = boothId;
       else if (req.query.booth_id || req.query.booth) return res.status(200).json({ success: true, count: 0, total: 0, page, pages: 0, data: [] });
     }
+    
+    // Apply hierarchy restrictions based on user permissions
+    if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
+        // Get the most specific access level (booth > block > assembly > parliament > division > state)
+        const boothIds = req.userHierarchy.booth_ids && req.userHierarchy.booth_ids.length > 0 
+            ? req.userHierarchy.booth_ids.map(b => b._id || b) 
+            : [];
+        const blockIds = req.userHierarchy.block_ids && req.userHierarchy.block_ids.length > 0 
+            ? req.userHierarchy.block_ids.map(b => b._id || b) 
+            : [];
+        const assemblyIds = req.userHierarchy.assembly_ids && req.userHierarchy.assembly_ids.length > 0 
+            ? req.userHierarchy.assembly_ids.map(a => a._id || a) 
+            : [];
+        const parliamentIds = req.userHierarchy.parliament_ids && req.userHierarchy.parliament_ids.length > 0 
+            ? req.userHierarchy.parliament_ids.map(p => p._id || p) 
+            : [];
+        const divisionIds = req.userHierarchy.division_ids && req.userHierarchy.division_ids.length > 0 
+            ? req.userHierarchy.division_ids.map(d => d._id || d) 
+            : [];
+        const stateIds = req.userHierarchy.state_ids && req.userHierarchy.state_ids.length > 0 
+            ? req.userHierarchy.state_ids.map(s => s._id || s) 
+            : [];
+
+        if (boothIds.length > 0) {
+            filter.booth_id = { $in: boothIds };
+        } else if (blockIds.length > 0) {
+            filter.block_id = { $in: blockIds };
+        } else if (assemblyIds.length > 0) {
+            filter.assembly_id = { $in: assemblyIds };
+        } else if (parliamentIds.length > 0) {
+            filter.parliament_id = { $in: parliamentIds };
+        } else if (divisionIds.length > 0) {
+            filter.division_id = { $in: divisionIds };
+        } else if (stateIds.length > 0) {
+            filter.state_id = { $in: stateIds };
+        }
+    }
+    
     if (req.query.party_id || req.query.party) {
       const partyId = await handleIdOrName('party_id', Party) || await handleIdOrName('party', Party);
       if (partyId) filter.party_id = partyId;
@@ -274,15 +312,45 @@ exports.getBoothVolunteer = async (req, res, next) => {
     // Enforce user hierarchy for single resource
     if (req.userHierarchy && req.user && req.user.role !== 'superAdmin') {
       const uh = req.userHierarchy;
-      const outside = (
-        (uh.booth && volunteer.booth_id.toString() !== uh.booth._id.toString()) ||
-        (uh.block && volunteer.block_id.toString() !== uh.block._id.toString()) ||
-        (uh.assembly && volunteer.assembly_id.toString() !== uh.assembly._id.toString()) ||
-        (uh.parliament && volunteer.parliament_id.toString() !== uh.parliament._id.toString()) ||
-        (uh.division && volunteer.division_id.toString() !== uh.division._id.toString()) ||
-        (uh.state && volunteer.state_id.toString() !== uh.state._id.toString())
-      );
-      if (outside) {
+      
+      // Get the most specific access level (booth > block > assembly > parliament > division > state)
+      const boothIds = uh.booth_ids && uh.booth_ids.length > 0 
+          ? uh.booth_ids.map(b => String(b._id || b)) 
+          : [];
+      const blockIds = uh.block_ids && uh.block_ids.length > 0 
+          ? uh.block_ids.map(b => String(b._id || b)) 
+          : [];
+      const assemblyIds = uh.assembly_ids && uh.assembly_ids.length > 0 
+          ? uh.assembly_ids.map(a => String(a._id || a)) 
+          : [];
+      const parliamentIds = uh.parliament_ids && uh.parliament_ids.length > 0 
+          ? uh.parliament_ids.map(p => String(p._id || p)) 
+          : [];
+      const divisionIds = uh.division_ids && uh.division_ids.length > 0 
+          ? uh.division_ids.map(d => String(d._id || d)) 
+          : [];
+      const stateIds = uh.state_ids && uh.state_ids.length > 0 
+          ? uh.state_ids.map(s => String(s._id || s)) 
+          : [];
+
+      // Check if volunteer record is within user's scope
+      let isInScope = false;
+      
+      if (boothIds.length > 0) {
+        isInScope = volunteer.booth_id && boothIds.includes(String(volunteer.booth_id._id || volunteer.booth_id));
+      } else if (blockIds.length > 0) {
+        isInScope = volunteer.block_id && blockIds.includes(String(volunteer.block_id._id || volunteer.block_id));
+      } else if (assemblyIds.length > 0) {
+        isInScope = volunteer.assembly_id && assemblyIds.includes(String(volunteer.assembly_id._id || volunteer.assembly_id));
+      } else if (parliamentIds.length > 0) {
+        isInScope = volunteer.parliament_id && parliamentIds.includes(String(volunteer.parliament_id._id || volunteer.parliament_id));
+      } else if (divisionIds.length > 0) {
+        isInScope = volunteer.division_id && divisionIds.includes(String(volunteer.division_id._id || volunteer.division_id));
+      } else if (stateIds.length > 0) {
+        isInScope = volunteer.state_id && stateIds.includes(String(volunteer.state_id._id || volunteer.state_id));
+      }
+
+      if (!isInScope) {
         return res.status(403).json({ success: false, message: 'Access denied: geographic restriction' });
       }
     }

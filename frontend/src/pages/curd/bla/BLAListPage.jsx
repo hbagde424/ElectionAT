@@ -54,62 +54,14 @@ const BLAListPage = () => {
     const [electionYears, setElectionYears] = useState([]);
 
     // Map related state (similar to Coding page)
-    const [blockNumberInput, setBlockNumberInput] = useState('ALL');
-    const [mapTheme, setMapTheme] = useState('streets');
     const [boothGeoJSON, setBoothGeoJSON] = useState(null);
     const [mapError, setMapError] = useState('');
     const [selectedMapYear, setSelectedMapYear] = useState('');
+    const [mapTheme, setMapTheme] = useState('streets');
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
     // Helper: fit map to GeoJSON feature collection bounds with retries (same logic as booths page)
-    const fitGeoJSONBounds = (fc, attempt = 0) => {
-        try {
-            const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-            if (!map) {
-                if (attempt < 6) {
-                    setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
-                }
-                return;
-            }
-
-            if (!fc || !Array.isArray(fc.features) || fc.features.length === 0) return;
-
-            const coords = [];
-            fc.features.forEach(f => {
-                const geom = f.geometry;
-                if (!geom) return;
-                const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
-                if (geom.type === 'Polygon') collect(geom.coordinates);
-                if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
-            });
-
-            if (!coords.length) return;
-
-            const lons = coords.map(c => c[0]);
-            const lats = coords.map(c => c[1]);
-            const bounds = [
-                [Math.min(...lons), Math.min(...lats)],
-                [Math.max(...lons), Math.max(...lats)]
-            ];
-
-            try {
-                map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
-            } catch (err) {
-                if (attempt < 6) {
-                    setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
-                } else {
-                    console.warn('fitBounds failed after retries:', err);
-                }
-            }
-        } catch (err) {
-            if (attempt < 6) {
-                setTimeout(() => fitGeoJSONBounds(fc, attempt + 1), 300);
-            } else {
-                console.warn('fitGeoJSONBounds unexpected error:', err);
-            }
-        }
-    };
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
     const [boothsWithBLA, setBoothsWithBLA] = useState(new Set());
@@ -156,39 +108,22 @@ const BLAListPage = () => {
     const fetchAllBLAsForFilters = async () => {
         try {
             const query = {};
-            
-            // Apply user hierarchy restrictions
             if (userHierarchy?.state) query.state_id = userHierarchy.state._id || userHierarchy.state;
             if (userHierarchy?.division) query.division_id = userHierarchy.division._id || userHierarchy.division;
             if (userHierarchy?.parliament) query.parliament_id = userHierarchy.parliament._id || userHierarchy.parliament;
             if (userHierarchy?.assembly) query.assembly_id = userHierarchy.assembly._id || userHierarchy.assembly;
             if (userHierarchy?.block) query.block_id = userHierarchy.block._id || userHierarchy.block;
             if (userHierarchy?.booth) query.booth_id = userHierarchy.booth._id || userHierarchy.booth;
-            
-            // Apply user-selected filters (but only if they don't violate hierarchy)
-            if (appliedFilters?.state_id && (!userHierarchy?.state || userHierarchy.state._id === appliedFilters.state_id || userHierarchy.state === appliedFilters.state_id)) {
-                query.state_id = appliedFilters.state_id;
-            }
-            if (appliedFilters?.division_id && (!userHierarchy?.division || userHierarchy.division._id === appliedFilters.division_id || userHierarchy.division === appliedFilters.division_id)) {
-                query.division_id = appliedFilters.division_id;
-            }
-            if (appliedFilters?.parliament_id && (!userHierarchy?.parliament || userHierarchy.parliament._id === appliedFilters.parliament_id || userHierarchy.parliament === appliedFilters.parliament_id)) {
-                query.parliament_id = appliedFilters.parliament_id;
-            }
-            if (appliedFilters?.assembly_id && (!userHierarchy?.assembly || userHierarchy.assembly._id === appliedFilters.assembly_id || userHierarchy.assembly === appliedFilters.assembly_id)) {
-                query.assembly_id = appliedFilters.assembly_id;
-            }
-            if (appliedFilters?.block_id && (!userHierarchy?.block || userHierarchy.block._id === appliedFilters.block_id || userHierarchy.block === appliedFilters.block_id)) {
-                query.block_id = appliedFilters.block_id;
-            }
-            if (appliedFilters?.booth_id && (!userHierarchy?.booth || userHierarchy.booth._id === appliedFilters.booth_id || userHierarchy.booth === appliedFilters.booth_id)) {
-                query.booth_id = appliedFilters.booth_id;
-            }
+            if (appliedFilters?.state_id) query.state_id = appliedFilters.state_id;
+            if (appliedFilters?.division_id) query.division_id = appliedFilters.division_id;
+            if (appliedFilters?.parliament_id) query.parliament_id = appliedFilters.parliament_id;
+            if (appliedFilters?.assembly_id) query.assembly_id = appliedFilters.assembly_id;
+            if (appliedFilters?.block_id) query.block_id = appliedFilters.block_id;
+            if (appliedFilters?.booth_id) query.booth_id = appliedFilters.booth_id;
             if (appliedFilters?.bla_name) query.bla_name = appliedFilters.bla_name;
             if (appliedFilters?.contact_number) query.contact_number = appliedFilters.contact_number;
             if (globalFilter) query.search = globalFilter;
 
-            console.debug('[BLA] Fetching with hierarchy-aware query:', query);
             const data = await fetchAllDataForFilters('/blas', query);
             setAllBLAs(data);
         } catch (error) {
@@ -412,7 +347,7 @@ const BLAListPage = () => {
     useEffect(() => {
         fetchHierarchyData();
         fetchAllBLAsForFilters();
-    }, [userHierarchy]);
+    }, []);
 
     // Keep filter options in sync with current applied filters (globalFilter already fetched in main useEffect)
     useEffect(() => {
@@ -421,69 +356,19 @@ const BLAListPage = () => {
 
     const fetchHierarchyData = async () => {
         try {
-            // Build queries based on user hierarchy
-            const queries = [];
-            
-            // Always fetch states, but filter if user is restricted to a state
-            if (userHierarchy?.state) {
-                queries.push(axiosServices.get(`/states/${userHierarchy.state._id || userHierarchy.state}`));
-            } else {
-                queries.push(axiosServices.get('/states?all=true'));
-            }
-            
-            // Divisions - filter by state if applicable
-            if (userHierarchy?.division) {
-                queries.push(axiosServices.get(`/divisions/${userHierarchy.division._id || userHierarchy.division}`));
-            } else if (userHierarchy?.state) {
-                queries.push(axiosServices.get(`/divisions?all=true&state_id=${userHierarchy.state._id || userHierarchy.state}`));
-            } else {
-                queries.push(axiosServices.get('/divisions?all=true'));
-            }
-            
-            // Parliaments - filter by division if applicable
-            if (userHierarchy?.parliament) {
-                queries.push(axiosServices.get(`/parliaments/${userHierarchy.parliament._id || userHierarchy.parliament}`));
-            } else if (userHierarchy?.division) {
-                queries.push(axiosServices.get(`/parliaments?all=true&division_id=${userHierarchy.division._id || userHierarchy.division}`));
-            } else {
-                queries.push(axiosServices.get('/parliaments?all=true'));
-            }
-            
-            // Assemblies - filter by parliament if applicable
-            if (userHierarchy?.assembly) {
-                queries.push(axiosServices.get(`/assemblies/${userHierarchy.assembly._id || userHierarchy.assembly}`));
-            } else if (userHierarchy?.parliament) {
-                queries.push(axiosServices.get(`/assemblies?all=true&parliament_id=${userHierarchy.parliament._id || userHierarchy.parliament}`));
-            } else {
-                queries.push(axiosServices.get('/assemblies?all=true'));
-            }
-            
-            // Blocks - filter by assembly if applicable
-            if (userHierarchy?.block) {
-                queries.push(axiosServices.get(`/blocks/${userHierarchy.block._id || userHierarchy.block}`));
-            } else if (userHierarchy?.assembly) {
-                queries.push(axiosServices.get(`/blocks?all=true&assembly_id=${userHierarchy.assembly._id || userHierarchy.assembly}`));
-            } else {
-                queries.push(axiosServices.get('/blocks?all=true'));
-            }
-            
-            // Booths - filter by block if applicable
-            if (userHierarchy?.booth) {
-                queries.push(axiosServices.get(`/booths/${userHierarchy.booth._id || userHierarchy.booth}`));
-            } else if (userHierarchy?.block) {
-                queries.push(axiosServices.get(`/booths?all=true&block_id=${userHierarchy.block._id || userHierarchy.block}`));
-            } else {
-                queries.push(axiosServices.get('/booths?all=true'));
-            }
-            
-            // Election years (no hierarchy restriction)
-            queries.push(axiosServices.get('/election-years?all=true'));
-
-            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, electionYearsRes] = await Promise.all(queries);
+            const [statesRes, divisionsRes, parliamentsRes, assembliesRes, blocksRes, boothsRes, electionYearsRes] = await Promise.all([
+                axiosServices.get('/states?all=true'),
+                axiosServices.get('/divisions?all=true'),
+                axiosServices.get('/parliaments?all=true'),
+                axiosServices.get('/assemblies?all=true'),
+                axiosServices.get('/blocks?all=true'),
+                axiosServices.get('/booths?all=true'),
+                axiosServices.get('/election-years?all=true')
+            ]);
 
             // Handle different response structures
             const getDataFromResponse = (res) => {
-                if (res.data?.data) return Array.isArray(res.data.data) ? res.data.data : [res.data.data];
+                if (res.data?.data) return res.data.data;
                 if (res.data?.success && Array.isArray(res.data.data)) return res.data.data;
                 if (Array.isArray(res.data)) return res.data;
                 return [];
@@ -497,15 +382,14 @@ const BLAListPage = () => {
             const boothsData = getDataFromResponse(boothsRes);
             const electionYearsData = getDataFromResponse(electionYearsRes);
 
-            console.log('[BLA] Hierarchy data fetched (with user restrictions):', {
+            console.log('Hierarchy data fetched:', {
                 states: statesData?.length || 0,
                 divisions: divisionsData?.length || 0,
                 parliaments: parliamentsData?.length || 0,
                 assemblies: assembliesData?.length || 0,
                 blocks: blocksData?.length || 0,
                 booths: boothsData?.length || 0,
-                electionYears: electionYearsData?.length || 0,
-                userHierarchy: userHierarchy
+                electionYears: electionYearsData?.length || 0
             });
 
             setStates(statesData);
@@ -535,31 +419,11 @@ const BLAListPage = () => {
                 ...Object.fromEntries(Object.entries(appliedFilters).filter(([_, v]) => v))
             });
 
-            // Apply user hierarchy restrictions
-            if (userHierarchy?.state) {
-                params.append('state_id', userHierarchy.state._id || userHierarchy.state);
-            }
-            if (userHierarchy?.division) {
-                params.append('division_id', userHierarchy.division._id || userHierarchy.division);
-            }
-            if (userHierarchy?.parliament) {
-                params.append('parliament_id', userHierarchy.parliament._id || userHierarchy.parliament);
-            }
-            if (userHierarchy?.assembly) {
-                params.append('assembly_id', userHierarchy.assembly._id || userHierarchy.assembly);
-            }
-            if (userHierarchy?.block) {
-                params.append('block_id', userHierarchy.block._id || userHierarchy.block);
-            }
-            if (userHierarchy?.booth) {
-                params.append('booth_id', userHierarchy.booth._id || userHierarchy.booth);
-            }
-
             if (sorting.length > 0) {
                 params.append('sort', `${sorting[0].desc ? '-' : ''}${sorting[0].id}`);
             }
 
-            console.debug('[BLA] fetching with hierarchy params:', params.toString());
+            console.debug('[BLA] fetching with params:', params.toString(), 'sorting:', sorting, 'globalFilter:', globalFilter, 'appliedFilters:', appliedFilters);
             const response = await axiosServices.get(`/blas?${params}`);
             const { data, total, pages } = response.data;
 
@@ -616,36 +480,19 @@ const BLAListPage = () => {
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
     };
 
-    // Map helpers - removed as we're using axiosServices now
+    // Map helpers
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('serviceToken');
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    };
 
-    // Fetch list of booths that already have a BLA (optionally filtered by year) - respecting user hierarchy
+    // Fetch list of booths that already have a BLA (optionally filtered by year)
     const fetchBoothsWithBLA = async (year = '') => {
         try {
             let url = '/blas?all=true&limit=50000';
             if (year) {
                 url += `&election_year_id=${year}`;
             }
-            
-            // Apply user hierarchy restrictions
-            if (userHierarchy?.state) {
-                url += `&state_id=${userHierarchy.state._id || userHierarchy.state}`;
-            }
-            if (userHierarchy?.division) {
-                url += `&division_id=${userHierarchy.division._id || userHierarchy.division}`;
-            }
-            if (userHierarchy?.parliament) {
-                url += `&parliament_id=${userHierarchy.parliament._id || userHierarchy.parliament}`;
-            }
-            if (userHierarchy?.assembly) {
-                url += `&assembly_id=${userHierarchy.assembly._id || userHierarchy.assembly}`;
-            }
-            if (userHierarchy?.block) {
-                url += `&block_id=${userHierarchy.block._id || userHierarchy.block}`;
-            }
-            if (userHierarchy?.booth) {
-                url += `&booth_id=${userHierarchy.booth._id || userHierarchy.booth}`;
-            }
-            
             const res = await axiosServices.get(url);
             const list = res?.data?.data || [];
             
@@ -665,215 +512,187 @@ const BLAListPage = () => {
         }
     };
 
-    // Load booth polygons from booth table using dedicated endpoint - respecting user hierarchy
-    // Only show polygons for booths that have BLA data
-    const loadBoothPolygons = async (blockInput) => {
-        if (!blockInput) {
-            setMapError('Please select a Block');
-            return;
-        }
-        setMapError('');
+    // Load booth polygons filtered by user access (like booth CRUD page)
+    const loadBoothPolygons = async () => {
         try {
-            // First, fetch all BLAs to get list of booths with BLA data
-            let blasUrl = '/blas?all=true&limit=50000';
+            const headers = getAuthHeaders();
             
-            // Apply user hierarchy restrictions
-            if (userHierarchy?.state) {
-                blasUrl += `&state_id=${userHierarchy.state._id || userHierarchy.state}`;
-            }
-            if (userHierarchy?.division) {
-                blasUrl += `&division_id=${userHierarchy.division._id || userHierarchy.division}`;
-            }
-            if (userHierarchy?.parliament) {
-                blasUrl += `&parliament_id=${userHierarchy.parliament._id || userHierarchy.parliament}`;
-            }
-            if (userHierarchy?.assembly) {
-                blasUrl += `&assembly_id=${userHierarchy.assembly._id || userHierarchy.assembly}`;
-            }
-            if (userHierarchy?.block) {
-                blasUrl += `&block_id=${userHierarchy.block._id || userHierarchy.block}`;
-            }
-            if (userHierarchy?.booth) {
-                blasUrl += `&booth_id=${userHierarchy.booth._id || userHierarchy.booth}`;
-            }
-            if (selectedMapYear) {
-                blasUrl += `&election_year_id=${selectedMapYear}`;
-            }
+            // Fetch all booths
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`, { headers });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
             
-            const blasRes = await axiosServices.get(blasUrl);
-            const blasList = blasRes?.data?.data || [];
-            
-            // Create a Set of booth IDs that have BLA data
-            const boothIdsWithBLA = new Set();
-            blasList.forEach(bla => {
-                const boothId = bla.booth_id?._id || bla.booth_id;
-                if (boothId) {
-                    boothIdsWithBLA.add(String(boothId));
-                }
-            });
-            
-            console.debug('[BLA Map] Booths with BLA data:', boothIdsWithBLA.size);
+            if (!json.success || !Array.isArray(json.data)) {
+                throw new Error('Invalid response format');
+            }
 
-            let features = [];
-            
-            // Check if user has access to the selected block
-            if (blockInput !== 'ALL') {
-                const blockObj = blocks.find(b => b.name === blockInput);
-                if (!blockObj) {
-                    setMapError(`Block '${blockInput}' not found`);
-                    setBoothGeoJSON(null);
-                    return;
-                }
-                
-                // Verify user has access to this block
-                if (userHierarchy?.block && (userHierarchy.block._id !== blockObj._id && userHierarchy.block !== blockObj._id)) {
-                    setMapError(`You don't have access to block '${blockInput}'`);
-                    setBoothGeoJSON(null);
-                    return;
-                }
+            // Filter booths based on user hierarchy (most specific first)
+            let boothsToUse = json.data;
+            if (userHierarchy?.booth) {
+                boothsToUse = json.data.filter(b => String(b._id) === String(userHierarchy.booth._id || userHierarchy.booth));
+            } else if (userHierarchy?.block) {
+                boothsToUse = json.data.filter(b => String(b.block_id?._id || b.block_id) === String(userHierarchy.block._id || userHierarchy.block));
+            } else if (userHierarchy?.assembly) {
+                boothsToUse = json.data.filter(b => String(b.assembly_id?._id || b.assembly_id) === String(userHierarchy.assembly._id || userHierarchy.assembly));
+            } else if (userHierarchy?.parliament) {
+                boothsToUse = json.data.filter(b => String(b.parliament_id?._id || b.parliament_id) === String(userHierarchy.parliament._id || userHierarchy.parliament));
+            } else if (userHierarchy?.division) {
+                boothsToUse = json.data.filter(b => String(b.division_id?._id || b.division_id) === String(userHierarchy.division._id || userHierarchy.division));
+            } else if (userHierarchy?.state) {
+                boothsToUse = json.data.filter(b => String(b.state_id?._id || b.state_id) === String(userHierarchy.state._id || userHierarchy.state));
             }
-            
-            if (blockInput === 'ALL') {
-                // Fetch all booth polygons
-                const resp = await axiosServices.get('/booths/polygons');
-                features = resp.data?.features || [];
-                
-                // Filter by user hierarchy if applicable
-                if (userHierarchy) {
-                    features = features.filter(f => {
-                        const props = f.properties || {};
-                        
-                        // Check state access
-                        if (userHierarchy.state) {
-                            const stateId = userHierarchy.state._id || userHierarchy.state;
-                            if (props.state_id && props.state_id !== stateId) return false;
-                        }
-                        
-                        // Check division access
-                        if (userHierarchy.division) {
-                            const divisionId = userHierarchy.division._id || userHierarchy.division;
-                            if (props.division_id && props.division_id !== divisionId) return false;
-                        }
-                        
-                        // Check parliament access
-                        if (userHierarchy.parliament) {
-                            const parliamentId = userHierarchy.parliament._id || userHierarchy.parliament;
-                            if (props.parliament_id && props.parliament_id !== parliamentId) return false;
-                        }
-                        
-                        // Check assembly access
-                        if (userHierarchy.assembly) {
-                            const assemblyId = userHierarchy.assembly._id || userHierarchy.assembly;
-                            if (props.assembly_id && props.assembly_id !== assemblyId) return false;
-                        }
-                        
-                        // Check block access
-                        if (userHierarchy.block) {
-                            const blockId = userHierarchy.block._id || userHierarchy.block;
-                            if (props.block_id && props.block_id !== blockId) return false;
-                        }
-                        
-                        // Check booth access
-                        if (userHierarchy.booth) {
-                            const boothId = userHierarchy.booth._id || userHierarchy.booth;
-                            if (props.booth_id && props.booth_id !== boothId) return false;
-                        }
-                        
-                        return true;
-                    });
-                    console.debug('[BLA Map] Filtered polygons by hierarchy:', features.length);
-                }
-                
-                console.debug('[BLA Map] Fetched all booth polygons:', features.length);
-            } else {
-                // Fetch booths for specific block
-                const blockObj = blocks.find(b => b.name === blockInput);
-                if (blockObj) {
-                    try {
-                        // Try using block_no first
-                        const resp = await axiosServices.get(`/booths/polygons/block-number/${blockObj.block_no || blockObj.name}`);
-                        features = resp.data?.features || [];
-                        console.debug('[BLA Map] Fetched booth polygons for block:', blockObj.name, 'count:', features.length);
-                    } catch (blockErr) {
-                        console.warn('[BLA Map] Block-specific endpoint failed, falling back to all polygons and filtering');
-                        // Fallback: get all and filter on frontend
-                        const resp = await axiosServices.get('/booths/polygons');
-                        const allFeatures = resp.data?.features || [];
-                        // Filter by block_id if available in properties
-                        features = allFeatures.filter(f => {
-                            const props = f.properties || {};
-                            return props.block_id === blockObj._id || props.BlockNumber === blockObj.block_no;
+
+            console.log('📍 Filtered booths for user access:', boothsToUse.length, 'out of', json.data.length);
+
+            // Fetch BLAs to get list of booths with data
+            const blasRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/blas?all=true&limit=50000`, { headers });
+            const blasJson = await blasRes.json();
+            const boothsWithBLA = new Set();
+            if (blasJson.success && Array.isArray(blasJson.data)) {
+                blasJson.data.forEach(bla => {
+                    if (bla.booth_id) {
+                        boothsWithBLA.add(String(bla.booth_id._id || bla.booth_id));
+                    }
+                });
+            }
+            console.log('📊 Booths with BLA data:', boothsWithBLA.size);
+
+            // Extract polygons from booths that have polygon data AND have BLA data
+            const features = [];
+            boothsToUse.forEach(booth => {
+                // Only include booths that have BLA data
+                if (booth.polygon && boothsWithBLA.has(String(booth._id))) {
+                    let featureToAdd = null;
+                    
+                    if (booth.polygon.type === 'Feature') {
+                        featureToAdd = {
+                            ...booth.polygon,
+                            properties: {
+                                booth_id: booth._id,
+                                booth_number: booth.booth_number,
+                                booth_name: booth.name
+                            }
+                        };
+                    } else if (booth.polygon.type === 'FeatureCollection' && Array.isArray(booth.polygon.features)) {
+                        booth.polygon.features.forEach(feat => {
+                            features.push({
+                                ...feat,
+                                properties: {
+                                    booth_id: booth._id,
+                                    booth_number: booth.booth_number,
+                                    booth_name: booth.name
+                                }
+                            });
                         });
-                        console.debug('[BLA Map] Filtered to', features.length, 'features for block');
+                        return;
+                    }
+                    
+                    if (featureToAdd) {
+                        features.push(featureToAdd);
                     }
                 }
-            }
-
-            // Filter features to only show booths that have BLA data
-            const filteredFeatures = features.filter(f => {
-                const props = f.properties || {};
-                const boothId = props.BoothId || props.booth_id || props._id;
-                const hasData = boothIdsWithBLA.has(String(boothId));
-                if (!hasData) {
-                    console.debug('[BLA Map] Filtering out booth without BLA:', props.BoothNo || props.booth_number);
-                }
-                return hasData;
             });
 
-            if (!filteredFeatures || filteredFeatures.length === 0) {
-                setMapError(`No booths with BLA data found in selected area`);
+            if (!features.length) {
+                setMapError('No booth polygons found with BLA data for your access level');
                 setBoothGeoJSON(null);
                 return;
             }
 
-            const fc = { type: 'FeatureCollection', features: filteredFeatures };
+            const fc = { type: 'FeatureCollection', features };
+            console.log('✅ Loaded booth polygons with data:', features.length);
             setBoothGeoJSON(fc);
-            console.debug('[BLA Map] GeoJSON created with', filteredFeatures.length, 'features (only booths with BLA data)');
-            // Auto-fit map to polygons
-            fitGeoJSONBounds(fc);
+            setMapError('');
+
+            // Fetch booths with BLA for marker colors
+            fetchBoothsWithBLA(selectedMapYear);
         } catch (e) {
-            console.error('[BLA Map] Error loading polygons:', e);
+            console.error('Failed to load booth polygons:', e);
             setMapError(`Failed to load booth polygons: ${e.message}`);
             setBoothGeoJSON(null);
         }
     };
 
-    // Auto-load ALL polygons when blocks/token ready
+    // Auto-load polygons on component mount and when user hierarchy changes
     useEffect(() => {
-        if (mapboxToken && blocks && blocks.length > 0) {
-            loadBoothPolygons('ALL');
+        if (mapboxToken) {
+            loadBoothPolygons();
         }
-    }, [blocks, mapboxToken]);
+    }, [mapboxToken, userHierarchy]);
 
-    // Refresh BLA markers when year filter changes
+    // Fit bounds when boothGeoJSON changes
     useEffect(() => {
-        if (boothGeoJSON) {
-            fetchBoothsWithBLA(selectedMapYear);
-        }
-    }, [selectedMapYear]);
+        if (!boothGeoJSON?.features?.length) return;
+
+        const fitMapBounds = (attempt = 0) => {
+            try {
+                const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                
+                if (!map || !map.getStyle) {
+                    if (attempt < 10) {
+                        console.log(`⏳ Map not ready for fitBounds, retrying... (attempt ${attempt + 1}/10)`);
+                        setTimeout(() => fitMapBounds(attempt + 1), 200);
+                    }
+                    return;
+                }
+                
+                const coords = [];
+                boothGeoJSON.features.forEach(f => {
+                    const geom = f.geometry;
+                    if (!geom) return;
+                    const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
+                    if (geom.type === 'Polygon') collect(geom.coordinates);
+                    if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+                });
+                
+                if (!coords.length) return;
+
+                const lons = coords.map(c => c[0]);
+                const lats = coords.map(c => c[1]);
+                const bounds = [
+                    [Math.min(...lons), Math.min(...lats)],
+                    [Math.max(...lons), Math.max(...lats)]
+                ];
+                
+                console.log('🎯 Fitting map bounds from useEffect:', bounds);
+                map.fitBounds(bounds, { padding: 40, maxZoom: 15, duration: 1000 });
+            } catch (e) {
+                console.warn('fitBounds error:', e);
+                if (attempt < 10) {
+                    setTimeout(() => fitMapBounds(attempt + 1), 200);
+                }
+            }
+        };
+
+        // Delay to ensure map is fully rendered
+        const timeoutId = setTimeout(() => fitMapBounds(), 500);
+        return () => clearTimeout(timeoutId);
+    }, [boothGeoJSON]);
 
     // When clicking a polygon, fetch booth + BLA details for drawer
     const fetchBoothDetailsByPolygon = async (boothNo) => {
         try {
-            // Fetch booth from booth table
-            const res = await axiosServices.get(`/booths?all=true&limit=10000`);
+            const headers = getAuthHeaders();
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?all=true&limit=10000`, { headers });
+            const json = await res.json();
             let booth = null;
-            if (res.data?.data && Array.isArray(res.data.data)) {
+            if (json.success && Array.isArray(json.data)) {
                 const boothNoStr = String(boothNo || '').trim();
-                booth = res.data.data.find(b => String(b.booth_number).trim() === boothNoStr) ||
-                    res.data.data.find(b => String(b.booth_number).includes(boothNoStr));
+                booth = json.data.find(b => String(b.booth_number).trim() === boothNoStr) ||
+                    json.data.find(b => String(b.booth_number).includes(boothNoStr));
             }
 
             // fetch blas for this booth (with year filter if selected)
             let blasForBooth = [];
             if (booth && booth._id) {
-                let blaUrl = `/blas?all=true&booth_id=${encodeURIComponent(booth._id)}`;
+                let blaUrl = `${import.meta.env.VITE_APP_API_URL}/blas?all=true&booth_id=${encodeURIComponent(booth._id)}`;
                 if (selectedMapYear) {
                     blaUrl += `&election_year_id=${encodeURIComponent(selectedMapYear)}`;
                 }
-                const resB = await axiosServices.get(blaUrl);
-                if (resB.data?.data && Array.isArray(resB.data.data)) {
-                    blasForBooth = resB.data.data;
+                const resB = await fetch(blaUrl, { headers });
+                const jb = await resB.json();
+                if (jb && jb.success && Array.isArray(jb.data)) {
+                    blasForBooth = jb.data;
                 }
             }
 
@@ -1052,25 +871,11 @@ const BLAListPage = () => {
 
                 {/* Map Section (similar to Coding CRUD) */}
                 <Box sx={{ p: 2, pb: 0 }}>
-                    <Typography variant="h6" sx={{ mb: 1 }}>BLA Coverage Map</Typography>
+                    <Typography variant="h6" sx={{ mb: 1 }}>BLA Coverage Map (Showing booths accessible to you)</Typography>
                     {mapError && (
                         <Alert severity="warning" sx={{ mb: 1 }}>{mapError}</Alert>
                     )}
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 1 }}>
-                        <TextField
-                            select
-                            size="small"
-                            label="Block"
-                            value={blockNumberInput}
-                            onChange={(e) => setBlockNumberInput(e.target.value)}
-                            sx={{ width: { xs: '100%', sm: 260 } }}
-                        >
-                            <MenuItem value="">Select Block</MenuItem>
-                            <MenuItem value="ALL">All Blocks</MenuItem>
-                            {blocks?.map((b) => (
-                                <MenuItem key={b._id} value={b.name}>{b.name}</MenuItem>
-                            ))}
-                        </TextField>
                         <TextField
                             select
                             size="small"
@@ -1084,22 +889,6 @@ const BLAListPage = () => {
                                 <MenuItem key={y._id} value={y._id}>{y.year}</MenuItem>
                             ))}
                         </TextField>
-                        <Button variant="contained" size="small" onClick={() => loadBoothPolygons(blockNumberInput)}>
-                            Load Polygons
-                        </Button>
-                        <TextField
-                            select
-                            size="small"
-                            label="Map Theme"
-                            value={mapTheme}
-                            onChange={(e) => setMapTheme(e.target.value)}
-                            sx={{ width: { xs: '100%', sm: 180 } }}
-                        >
-                            <MenuItem value="streets">Streets</MenuItem>
-                            <MenuItem value="satellite">Satellite</MenuItem>
-                            <MenuItem value="light">Light</MenuItem>
-                            <MenuItem value="dark">Dark</MenuItem>
-                        </TextField>
                     </Stack>
 
                     <Box sx={{ height: 520, width: '100%', borderRadius: 1, overflow: 'hidden' }}>
@@ -1107,12 +896,7 @@ const BLAListPage = () => {
                             ref={mapRef}
                             mapboxAccessToken={mapboxToken}
                             initialViewState={{ longitude: 75.8577, latitude: 22.7196, zoom: 8 }}
-                            mapStyle={
-                                mapTheme === 'satellite' ? 'mapbox://styles/mapbox/satellite-v9' :
-                                    mapTheme === 'light' ? 'mapbox://styles/mapbox/light-v10' :
-                                        mapTheme === 'dark' ? 'mapbox://styles/mapbox/dark-v10' :
-                                            'mapbox://styles/mapbox/streets-v11'
-                            }
+                            mapStyle="mapbox://styles/mapbox/streets-v11"
                             interactiveLayerIds={boothGeoJSON ? ['BLA-booth-fill'] : []}
                             onClick={async (e) => {
                                 if (!boothGeoJSON) return;
@@ -1160,8 +944,82 @@ const BLAListPage = () => {
                                 </Source>
                             )}
 
-                            {/* BLA Markers Layer - Removed since we only show polygons for booths with BLA data */}
-                            {/* All displayed polygons represent booths with BLA data */}
+                            {/* BLA Markers Layer */}
+                            {boothGeoJSON && (
+                                <Source
+                                    id="BLA-booth-markers"
+                                    type="geojson"
+                                    data={{
+                                        type: 'FeatureCollection',
+                                        features: boothGeoJSON.features.map(feature => {
+                                            const props = feature.properties || {};
+                                            const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
+                                            let coordinates = [0, 0];
+                                            if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates?.[0]) {
+                                                const coords = feature.geometry.coordinates[0];
+                                                const lngs = coords.map(c => c[0]);
+                                                const lats = coords.map(c => c[1]);
+                                                coordinates = [
+                                                    lngs.reduce((a, b) => a + b, 0) / lngs.length,
+                                                    lats.reduce((a, b) => a + b, 0) / lats.length
+                                                ];
+                                            } else if (feature.geometry?.type === 'MultiPolygon' && feature.geometry.coordinates?.[0]?.[0]) {
+                                                const coords = feature.geometry.coordinates[0][0];
+                                                const lngs = coords.map(c => c[0]);
+                                                const lats = coords.map(c => c[1]);
+                                                coordinates = [
+                                                    lngs.reduce((a, b) => a + b, 0) / lngs.length,
+                                                    lats.reduce((a, b) => a + b, 0) / lats.length
+                                                ];
+                                            }
+
+                                            const hasBLO = (() => {
+                                                // Match booth number directly from polygon with booth numbers that have blas
+                                                const boothNoStr = String(boothNo || '').trim();
+                                                const hasIt = boothsWithBLA.has(boothNoStr);
+                                                
+                                                // Also try numeric comparison in case of formatting differences
+                                                if (!hasIt && boothNoStr) {
+                                                    const boothNoNum = parseInt(boothNoStr, 10);
+                                                    for (let bn of boothsWithBLA) {
+                                                        if (parseInt(bn, 10) === boothNoNum) {
+                                                            return true;
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                if (hasIt) {
+                                                    console.debug('[BLA Map] Found BLA for booth number:', boothNoStr);
+                                                }
+                                                return hasIt;
+                                            })();
+
+                                            return {
+                                                type: 'Feature',
+                                                geometry: { type: 'Point', coordinates },
+                                                properties: { ...props, hasBLO: hasBLO ? 1 : 0 }
+                                            };
+                                        })
+                                    }}
+                                >
+                                    <Layer
+                                        id="BLA-booth-BLA-markers"
+                                        type="circle"
+                                        paint={{
+                                            'circle-radius': 6,
+                                            'circle-color': [
+                                                'case',
+                                                ['==', ['get', 'hasBLO'], 1],
+                                                '#22c55e',
+                                                '#ef4444'
+                                            ],
+                                            'circle-stroke-width': 2,
+                                            'circle-stroke-color': '#ffffff',
+                                            'circle-opacity': 0.9
+                                        }}
+                                    />
+                                </Source>
+                            )}
                         </Map>
                     </Box>
 
@@ -1170,13 +1028,14 @@ const BLAListPage = () => {
                         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Map Legend</Typography>
                         <Stack direction="row" spacing={3}>
                             <Stack direction="row" spacing={1} alignItems="center">
-                                <Box sx={{ width: 16, height: 16, backgroundColor: '#1E90FF', border: '2px solid #1E90FF', boxShadow: 1 }} />
-                                <Typography variant="caption">Booths with BLA Data</Typography>
+                                <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: '#22c55e', border: '2px solid #ffffff', boxShadow: 1 }} />
+                                <Typography variant="caption">Has BLA</Typography>
+                            </Stack>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                                <Box sx={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: '#ef4444', border: '2px solid #ffffff', boxShadow: 1 }} />
+                                <Typography variant="caption">No BLA</Typography>
                             </Stack>
                         </Stack>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                            Only booths with BLA records are displayed
-                        </Typography>
                     </Paper>
 
                     {/* Right-side Drawer */}

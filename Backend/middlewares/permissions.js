@@ -200,9 +200,36 @@ const getUserPermissionsAndHierarchy = async (req, res, next) => {
 
         const userPermissions = rolePermissions.map(rp => rp.permission.name);
 
-        // Get user hierarchy
-        const userHierarchy = await UserHierarchy.findOne({ user: req.user._id })
-            .populate(['state', 'division', 'parliament', 'assembly', 'block', 'booth']);
+        // Get user hierarchy from User table (state_ids, division_ids, etc.)
+        const user = await User.findById(req.user._id)
+            .populate('state_ids')
+            .populate('division_ids')
+            .populate('parliament_ids')
+            .populate('assembly_ids')
+            .populate('block_ids')
+            .populate('booth_ids');
+
+        // Build userHierarchy object from user's access fields
+        // Priority: booth > block > assembly > parliament > division > state
+        let userHierarchy = null;
+        if (user) {
+            userHierarchy = {
+                user: user._id,
+                state: user.state_ids && user.state_ids.length > 0 ? user.state_ids[0] : null,
+                division: user.division_ids && user.division_ids.length > 0 ? user.division_ids[0] : null,
+                parliament: user.parliament_ids && user.parliament_ids.length > 0 ? user.parliament_ids[0] : null,
+                assembly: user.assembly_ids && user.assembly_ids.length > 0 ? user.assembly_ids[0] : null,
+                block: user.block_ids && user.block_ids.length > 0 ? user.block_ids[0] : null,
+                booth: user.booth_ids && user.booth_ids.length > 0 ? user.booth_ids[0] : null,
+                // Also store arrays for multi-level access
+                state_ids: user.state_ids || [],
+                division_ids: user.division_ids || [],
+                parliament_ids: user.parliament_ids || [],
+                assembly_ids: user.assembly_ids || [],
+                block_ids: user.block_ids || [],
+                booth_ids: user.booth_ids || []
+            };
+        }
 
         // Attach to request object
         req.userPermissions = userPermissions;

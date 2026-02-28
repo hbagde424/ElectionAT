@@ -436,130 +436,107 @@ export default function LocalIssueListPage() {
         }
     };
 
-    // Load booth polygons by block name or id (tries multiple backend endpoints)
-    const loadBoothPolygons = async (blockInput) => {
-        if (!blockInput) {
-            setMapError('Please select a Block');
-            return;
-        }
-        setMapError('');
+    // Load booth polygons filtered by user access (like booth CRUD page)
+    const loadBoothPolygons = async () => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            
+            // Fetch all booths
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`, { headers });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            
+            if (!json.success || !Array.isArray(json.data)) {
+                throw new Error('Invalid response format');
+            }
 
-            await fetchBoothsWithLocalIssues(yearFilter);
+            // Filter booths based on user hierarchy (most specific first)
+            let boothsToUse = json.data;
+            if (userHierarchy?.booth_ids && userHierarchy.booth_ids.length > 0) {
+                const boothIds = userHierarchy.booth_ids.map(b => String(b._id || b));
+                boothsToUse = json.data.filter(b => boothIds.includes(String(b._id)));
+            } else if (userHierarchy?.block_ids && userHierarchy.block_ids.length > 0) {
+                const blockIds = userHierarchy.block_ids.map(b => String(b._id || b));
+                boothsToUse = json.data.filter(b => blockIds.includes(String(b.block_id?._id || b.block_id)));
+            } else if (userHierarchy?.assembly_ids && userHierarchy.assembly_ids.length > 0) {
+                const assemblyIds = userHierarchy.assembly_ids.map(a => String(a._id || a));
+                boothsToUse = json.data.filter(b => assemblyIds.includes(String(b.assembly_id?._id || b.assembly_id)));
+            } else if (userHierarchy?.parliament_ids && userHierarchy.parliament_ids.length > 0) {
+                const parliamentIds = userHierarchy.parliament_ids.map(p => String(p._id || p));
+                boothsToUse = json.data.filter(b => parliamentIds.includes(String(b.parliament_id?._id || b.parliament_id)));
+            } else if (userHierarchy?.division_ids && userHierarchy.division_ids.length > 0) {
+                const divisionIds = userHierarchy.division_ids.map(d => String(d._id || d));
+                boothsToUse = json.data.filter(b => divisionIds.includes(String(b.division_id?._id || b.division_id)));
+            } else if (userHierarchy?.state_ids && userHierarchy.state_ids.length > 0) {
+                const stateIds = userHierarchy.state_ids.map(s => String(s._id || s));
+                boothsToUse = json.data.filter(b => stateIds.includes(String(b.state_id?._id || b.state_id)));
+            }
 
-            // If user selected ALL blocks, fetch all polygons (large result)
-            if (blockInput === 'ALL') {
-                const apiUrl = import.meta.env.VITE_APP_API_URL || 'https://myhostmanager.co.in/backend/api';
-                // Remove pagination and get all results by setting a very high limit
-                const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
-                const resp = await fetch(url, { headers });
+            console.log('📍 Filtered booths for user access:', boothsToUse.length, 'out of', json.data.length);
 
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const j = await resp.json();
+            // Fetch local issues to get list of booths with data
+            const issuesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/local-issues?all=true&limit=50000`, { headers });
+            const issuesJson = await issuesRes.json();
+            const boothsWithIssues = new Set();
+            if (issuesJson.success && Array.isArray(issuesJson.data)) {
+                issuesJson.data.forEach(issue => {
+                    if (issue.booth_id) {
+                        boothsWithIssues.add(String(issue.booth_id._id || issue.booth_id));
+                    }
+                });
+            }
+            console.log('📊 Booths with local issues:', boothsWithIssues.size);
 
-                // Handle nested features structure - check if features[0] has nested features
-                let features = j.features || j.data || [];
-                if (features.length === 1 && features[0] && features[0].features && Array.isArray(features[0].features)) {
-                    features = features[0].features;
-                }
-                if (!features || !Array.isArray(features) || features.length === 0) {
-                    setMapError('No booth polygons found');
-                    setBoothGeoJSON(null);
-                    return;
-                }
-                const fc = { type: 'FeatureCollection', features };
-                setBoothGeoJSON(fc);
-                // auto-fit handled below
-                setTimeout(() => {
-                    try {
-                        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-                        if (!map || !fc.features?.length) return;
-                        const coords = [];
-                        fc.features.forEach(f => {
-                            const geom = f.geometry;
-                            if (!geom) return;
-                            const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
-                            if (geom.type === 'Polygon') collect(geom.coordinates);
-                            if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+            // Extract polygons from booths that have polygon data AND have local issues
+            const features = [];
+            boothsToUse.forEach(booth => {
+                // Only include booths that have local issues
+                if (booth.polygon && boothsWithIssues.has(String(booth._id))) {
+                    let featureToAdd = null;
+                    
+                    if (booth.polygon.type === 'Feature') {
+                        featureToAdd = {
+                            ...booth.polygon,
+                            properties: {
+                                booth_id: booth._id,
+                                booth_number: booth.booth_number,
+                                booth_name: booth.name
+                            }
+                        };
+                    } else if (booth.polygon.type === 'FeatureCollection' && Array.isArray(booth.polygon.features)) {
+                        booth.polygon.features.forEach(feat => {
+                            features.push({
+                                ...feat,
+                                properties: {
+                                    booth_id: booth._id,
+                                    booth_number: booth.booth_number,
+                                    booth_name: booth.name
+                                }
+                            });
                         });
-                        if (coords.length) {
-                            const lons = coords.map(c => c[0]);
-                            const lats = coords.map(c => c[1]);
-                            const bounds = [
-                                [Math.min(...lons), Math.min(...lats)],
-                                [Math.max(...lons), Math.max(...lats)]
-                            ];
-                            map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
-                        }
-                    } catch { }
-                }, 0);
-                return;
-            }
-
-            // Try multiple endpoints in order until we get features
-            const candidates = [
-                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block/${encodeURIComponent(blockInput)}`,
-                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${encodeURIComponent(blockInput)}`,
-                `${import.meta.env.VITE_APP_API_URL}/booth-polygons?block=${encodeURIComponent(blockInput)}`
-            ];
-
-            let json = null;
-            for (const url of candidates) {
-                try {
-                    const resp = await fetch(url, { headers });
-                    if (!resp.ok) {
-                        console.warn('Non-ok response from', url, resp.status);
-                        continue;
+                        return;
                     }
-                    const j = await resp.json();
-                    // Normalize response shape: either { type, features } or { features: [...] } or { success, features }
-                    const features = j.features || (Array.isArray(j) ? j : (j.data || null));
-                    if (features && Array.isArray(features) && features.length > 0) {
-                        json = { type: 'FeatureCollection', features };
-                        break;
+                    
+                    if (featureToAdd) {
+                        features.push(featureToAdd);
                     }
-                    // Some endpoints respond with empty features but valid structure; keep trying
-                } catch (innerErr) {
-                    console.warn('Error fetching booth polygons from candidate url:', innerErr);
                 }
-            }
+            });
 
-            if (!json) {
-                // No data found from any endpoint
-                setMapError(`No booth polygons found for block '${blockInput}'`);
+            if (!features.length) {
+                setMapError('No booth polygons found with local issues for your access level');
                 setBoothGeoJSON(null);
                 return;
             }
 
-            // Normalize to a valid FeatureCollection
-            const fc = { type: 'FeatureCollection', features: json.features };
+            const fc = { type: 'FeatureCollection', features };
+            console.log('✅ Loaded booth polygons with data:', features.length);
             setBoothGeoJSON(fc);
-            // Auto-fit on first render
-            setTimeout(() => {
-                try {
-                    const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-                    if (!map || !fc.features?.length) return;
-                    const coords = [];
-                    fc.features.forEach(f => {
-                        const geom = f.geometry;
-                        if (!geom) return;
-                        const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
-                        if (geom.type === 'Polygon') collect(geom.coordinates);
-                        if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
-                    });
-                    if (coords.length) {
-                        const lons = coords.map(c => c[0]);
-                        const lats = coords.map(c => c[1]);
-                        const bounds = [
-                            [Math.min(...lons), Math.min(...lats)],
-                            [Math.max(...lons), Math.max(...lats)]
-                        ];
-                        map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
-                    }
-                } catch { }
-            }, 0);
+            setMapError('');
+
+            // Fetch booths with local issues for marker colors
+            fetchBoothsWithLocalIssues(yearFilter);
         } catch (e) {
             console.error('Failed to load booth polygons:', e);
             setMapError(`Failed to load booth polygons: ${e.message}`);
@@ -567,12 +544,63 @@ export default function LocalIssueListPage() {
         }
     };
 
-    // Auto-load ALL blocks map on component mount
+    // Auto-load polygons on component mount and when user hierarchy changes
     useEffect(() => {
-        if (mapboxToken && blocks && blocks.length > 0) {
-            loadBoothPolygons('ALL');
+        if (mapboxToken) {
+            loadBoothPolygons();
         }
-    }, [blocks, mapboxToken]);
+    }, [mapboxToken, userHierarchy]);
+
+    // Fit bounds when boothGeoJSON changes
+    useEffect(() => {
+        if (!boothGeoJSON?.features?.length) return;
+
+        const fitMapBounds = (attempt = 0) => {
+            try {
+                const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                
+                if (!map || !map.getStyle) {
+                    if (attempt < 10) {
+                        console.log(`⏳ Map not ready for fitBounds, retrying... (attempt ${attempt + 1}/10)`);
+                        setTimeout(() => fitMapBounds(attempt + 1), 200);
+                    }
+                    return;
+                }
+
+                const fc = boothGeoJSON;
+                const coords = [];
+                fc.features.forEach(f => {
+                    const geom = f.geometry;
+                    if (!geom) return;
+                    const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
+                    if (geom.type === 'Polygon') collect(geom.coordinates);
+                    if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+                });
+
+                if (!coords.length) {
+                    console.warn('⚠️ No coordinates found in features');
+                    return;
+                }
+
+                const lons = coords.map(c => c[0]);
+                const lats = coords.map(c => c[1]);
+                const bounds = [
+                    [Math.min(...lons), Math.min(...lats)],
+                    [Math.max(...lons), Math.max(...lats)]
+                ];
+
+                console.log('🎯 Fitting map bounds:', bounds);
+                map.fitBounds(bounds, { padding: 40, maxZoom: 15, duration: 1000 });
+            } catch (e) {
+                console.warn('Auto-fit bounds error:', e);
+                if (attempt < 10) {
+                    setTimeout(() => fitMapBounds(attempt + 1), 200);
+                }
+            }
+        };
+
+        fitMapBounds();
+    }, [boothGeoJSON]);
 
     // Refresh local issue markers and table when year filter changes
     useEffect(() => {
@@ -702,22 +730,34 @@ export default function LocalIssueListPage() {
                 if (highest) {
                     switch (highest) {
                         case 'state':
-                            query += `&state_id=${userHierarchy.state}`;
+                            if (userHierarchy.state_ids && userHierarchy.state_ids.length > 0) {
+                                query += `&state_id=${userHierarchy.state_ids[0]._id || userHierarchy.state_ids[0]}`;
+                            }
                             break;
                         case 'division':
-                            query += `&division_id=${userHierarchy.division}`;
+                            if (userHierarchy.division_ids && userHierarchy.division_ids.length > 0) {
+                                query += `&division_id=${userHierarchy.division_ids[0]._id || userHierarchy.division_ids[0]}`;
+                            }
                             break;
                         case 'parliament':
-                            query += `&parliament_id=${userHierarchy.parliament}`;
+                            if (userHierarchy.parliament_ids && userHierarchy.parliament_ids.length > 0) {
+                                query += `&parliament_id=${userHierarchy.parliament_ids[0]._id || userHierarchy.parliament_ids[0]}`;
+                            }
                             break;
                         case 'assembly':
-                            query += `&assembly_id=${userHierarchy.assembly}`;
+                            if (userHierarchy.assembly_ids && userHierarchy.assembly_ids.length > 0) {
+                                query += `&assembly_id=${userHierarchy.assembly_ids[0]._id || userHierarchy.assembly_ids[0]}`;
+                            }
                             break;
                         case 'block':
-                            query += `&block_id=${userHierarchy.block}`;
+                            if (userHierarchy.block_ids && userHierarchy.block_ids.length > 0) {
+                                query += `&block_id=${userHierarchy.block_ids[0]._id || userHierarchy.block_ids[0]}`;
+                            }
                             break;
                         case 'booth':
-                            query += `&booth_id=${userHierarchy.booth}`;
+                            if (userHierarchy.booth_ids && userHierarchy.booth_ids.length > 0) {
+                                query += `&booth_id=${userHierarchy.booth_ids[0]._id || userHierarchy.booth_ids[0]}`;
+                            }
                             break;
                         default:
                             break;

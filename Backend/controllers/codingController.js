@@ -168,26 +168,39 @@ exports.getCodings = async (req, res, next) => {
     // Precedence: booth -> block -> assembly -> parliament -> division -> state
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      // Extract IDs from populated objects or direct ID values
-      const boothId = h.booth?._id || h.booth;
-      const blockId = h.block?._id || h.block;
-      const assemblyId = h.assembly?._id || h.assembly;
-      const parliamentId = h.parliament?._id || h.parliament;
-      const divisionId = h.division?._id || h.division;
-      const stateId = h.state?._id || h.state;
+      
+      // Get the most specific access level (booth > block > assembly > parliament > division > state)
+      const boothIds = h.booth_ids && h.booth_ids.length > 0 
+          ? h.booth_ids.map(b => b._id || b) 
+          : [];
+      const blockIds = h.block_ids && h.block_ids.length > 0 
+          ? h.block_ids.map(b => b._id || b) 
+          : [];
+      const assemblyIds = h.assembly_ids && h.assembly_ids.length > 0 
+          ? h.assembly_ids.map(a => a._id || a) 
+          : [];
+      const parliamentIds = h.parliament_ids && h.parliament_ids.length > 0 
+          ? h.parliament_ids.map(p => p._id || p) 
+          : [];
+      const divisionIds = h.division_ids && h.division_ids.length > 0 
+          ? h.division_ids.map(d => d._id || d) 
+          : [];
+      const stateIds = h.state_ids && h.state_ids.length > 0 
+          ? h.state_ids.map(s => s._id || s) 
+          : [];
 
-      if (boothId) {
-        query = query.where('booth_id').equals(boothId);
-      } else if (blockId) {
-        query = query.where('block_id').equals(blockId);
-      } else if (assemblyId) {
-        query = query.where('assembly_id').equals(assemblyId);
-      } else if (parliamentId) {
-        query = query.where('parliament_id').equals(parliamentId);
-      } else if (divisionId) {
-        query = query.where('division_id').equals(divisionId);
-      } else if (stateId) {
-        query = query.where('state_id').equals(stateId);
+      if (boothIds.length > 0) {
+        query = query.where('booth_id').in(boothIds);
+      } else if (blockIds.length > 0) {
+        query = query.where('block_id').in(blockIds);
+      } else if (assemblyIds.length > 0) {
+        query = query.where('assembly_id').in(assemblyIds);
+      } else if (parliamentIds.length > 0) {
+        query = query.where('parliament_id').in(parliamentIds);
+      } else if (divisionIds.length > 0) {
+        query = query.where('division_id').in(divisionIds);
+      } else if (stateIds.length > 0) {
+        query = query.where('state_id').in(stateIds);
       }
     }
 
@@ -235,22 +248,45 @@ exports.getCoding = async (req, res, next) => {
     // Enforce user hierarchy: only allow access if coding is within user's scope
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      // Extract IDs from populated objects or direct ID values
-      const boothId = h.booth?._id || h.booth;
-      const blockId = h.block?._id || h.block;
-      const assemblyId = h.assembly?._id || h.assembly;
-      const parliamentId = h.parliament?._id || h.parliament;
-      const divisionId = h.division?._id || h.division;
-      const stateId = h.state?._id || h.state;
+      
+      // Get the most specific access level (booth > block > assembly > parliament > division > state)
+      const boothIds = h.booth_ids && h.booth_ids.length > 0 
+          ? h.booth_ids.map(b => String(b._id || b)) 
+          : [];
+      const blockIds = h.block_ids && h.block_ids.length > 0 
+          ? h.block_ids.map(b => String(b._id || b)) 
+          : [];
+      const assemblyIds = h.assembly_ids && h.assembly_ids.length > 0 
+          ? h.assembly_ids.map(a => String(a._id || a)) 
+          : [];
+      const parliamentIds = h.parliament_ids && h.parliament_ids.length > 0 
+          ? h.parliament_ids.map(p => String(p._id || p)) 
+          : [];
+      const divisionIds = h.division_ids && h.division_ids.length > 0 
+          ? h.division_ids.map(d => String(d._id || d)) 
+          : [];
+      const stateIds = h.state_ids && h.state_ids.length > 0 
+          ? h.state_ids.map(s => String(s._id || s)) 
+          : [];
 
-      const outOfScope = (boothId && coding.booth_id && coding.booth_id.toString() !== boothId.toString()) ||
-        (blockId && coding.block_id && coding.block_id.toString() !== blockId.toString()) ||
-        (assemblyId && coding.assembly_id && coding.assembly_id.toString() !== assemblyId.toString()) ||
-        (parliamentId && coding.parliament_id && coding.parliament_id.toString() !== parliamentId.toString()) ||
-        (divisionId && coding.division_id && coding.division_id.toString() !== divisionId.toString()) ||
-        (stateId && coding.state_id && coding.state_id.toString() !== stateId.toString());
+      // Check if coding record is within user's scope
+      let isInScope = false;
+      
+      if (boothIds.length > 0) {
+        isInScope = coding.booth_id && boothIds.includes(String(coding.booth_id._id || coding.booth_id));
+      } else if (blockIds.length > 0) {
+        isInScope = coding.block_id && blockIds.includes(String(coding.block_id._id || coding.block_id));
+      } else if (assemblyIds.length > 0) {
+        isInScope = coding.assembly_id && assemblyIds.includes(String(coding.assembly_id._id || coding.assembly_id));
+      } else if (parliamentIds.length > 0) {
+        isInScope = coding.parliament_id && parliamentIds.includes(String(coding.parliament_id._id || coding.parliament_id));
+      } else if (divisionIds.length > 0) {
+        isInScope = coding.division_id && divisionIds.includes(String(coding.division_id._id || coding.division_id));
+      } else if (stateIds.length > 0) {
+        isInScope = coding.state_id && stateIds.includes(String(coding.state_id._id || coding.state_id));
+      }
 
-      if (outOfScope) {
+      if (!isInScope) {
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
       }
     }

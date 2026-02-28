@@ -11,9 +11,10 @@ const {
   verifyPhoneOtp
 } = require('../controllers/blaController');
 const { protect } = require('../middlewares/auth');
+const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
 
 router.route('/')
-  .get(protect, getBLAs)
+  .get(protect, getUserPermissionsAndHierarchy, getBLAs)
   .post(protect, createBLA);
 
 router.route('/import')
@@ -24,7 +25,7 @@ router.post('/:id/request-phone-otp', protect, requestPhoneOtp);
 router.post('/:id/verify-phone-otp', protect, verifyPhoneOtp);
 
 router.route('/:id')
-  .get(protect, getBLA)
+  .get(protect, getUserPermissionsAndHierarchy, getBLA)
   .put(protect, updateBLA)
   .delete(protect, deleteBLA);
 

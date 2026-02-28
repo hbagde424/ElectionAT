@@ -32,12 +32,39 @@ const getBLAs = async (req, res, next) => {
 
     // Apply hierarchy restrictions based on user permissions
     if (req.userHierarchy) {
-        if (req.userHierarchy.state) filter.state_id = req.userHierarchy.state;
-        if (req.userHierarchy.division) filter.division_id = req.userHierarchy.division;
-        if (req.userHierarchy.parliament) filter.parliament_id = req.userHierarchy.parliament;
-        if (req.userHierarchy.assembly) filter.assembly_id = req.userHierarchy.assembly;
-        if (req.userHierarchy.block) filter.block_id = req.userHierarchy.block;
-        if (req.userHierarchy.booth) filter.booth_id = req.userHierarchy.booth;
+        // Get the most specific access level (booth > block > assembly > parliament > division > state)
+        const boothIds = req.userHierarchy.booth_ids && req.userHierarchy.booth_ids.length > 0 
+            ? req.userHierarchy.booth_ids.map(b => b._id || b) 
+            : [];
+        const blockIds = req.userHierarchy.block_ids && req.userHierarchy.block_ids.length > 0 
+            ? req.userHierarchy.block_ids.map(b => b._id || b) 
+            : [];
+        const assemblyIds = req.userHierarchy.assembly_ids && req.userHierarchy.assembly_ids.length > 0 
+            ? req.userHierarchy.assembly_ids.map(a => a._id || a) 
+            : [];
+        const parliamentIds = req.userHierarchy.parliament_ids && req.userHierarchy.parliament_ids.length > 0 
+            ? req.userHierarchy.parliament_ids.map(p => p._id || p) 
+            : [];
+        const divisionIds = req.userHierarchy.division_ids && req.userHierarchy.division_ids.length > 0 
+            ? req.userHierarchy.division_ids.map(d => d._id || d) 
+            : [];
+        const stateIds = req.userHierarchy.state_ids && req.userHierarchy.state_ids.length > 0 
+            ? req.userHierarchy.state_ids.map(s => s._id || s) 
+            : [];
+
+        if (boothIds.length > 0) {
+            filter.booth_id = { $in: boothIds };
+        } else if (blockIds.length > 0) {
+            filter.block_id = { $in: blockIds };
+        } else if (assemblyIds.length > 0) {
+            filter.assembly_id = { $in: assemblyIds };
+        } else if (parliamentIds.length > 0) {
+            filter.parliament_id = { $in: parliamentIds };
+        } else if (divisionIds.length > 0) {
+            filter.division_id = { $in: divisionIds };
+        } else if (stateIds.length > 0) {
+            filter.state_id = { $in: stateIds };
+        }
     }
 
     // Apply additional filters from query parameters
@@ -143,14 +170,42 @@ const getBLA = async (req, res, next) => {
 
         // Check if user has access to this BLA based on hierarchy
         if (req.userHierarchy) {
-            const hasAccess = (
-                (!req.userHierarchy.state || !bla.state_id || bla.state_id._id.toString() === req.userHierarchy.state.toString()) &&
-                (!req.userHierarchy.division || !bla.division_id || bla.division_id._id.toString() === req.userHierarchy.division.toString()) &&
-                (!req.userHierarchy.parliament || !bla.parliament_id || bla.parliament_id._id.toString() === req.userHierarchy.parliament.toString()) &&
-                (!req.userHierarchy.assembly || !bla.assembly_id || bla.assembly_id._id.toString() === req.userHierarchy.assembly.toString()) &&
-                (!req.userHierarchy.block || !bla.block_id || bla.block_id._id.toString() === req.userHierarchy.block.toString()) &&
-                (!req.userHierarchy.booth || !bla.booth_id || bla.booth_id._id.toString() === req.userHierarchy.booth.toString())
-            );
+            // Get the most specific access level (booth > block > assembly > parliament > division > state)
+            const boothIds = req.userHierarchy.booth_ids && req.userHierarchy.booth_ids.length > 0 
+                ? req.userHierarchy.booth_ids.map(b => String(b._id || b)) 
+                : [];
+            const blockIds = req.userHierarchy.block_ids && req.userHierarchy.block_ids.length > 0 
+                ? req.userHierarchy.block_ids.map(b => String(b._id || b)) 
+                : [];
+            const assemblyIds = req.userHierarchy.assembly_ids && req.userHierarchy.assembly_ids.length > 0 
+                ? req.userHierarchy.assembly_ids.map(a => String(a._id || a)) 
+                : [];
+            const parliamentIds = req.userHierarchy.parliament_ids && req.userHierarchy.parliament_ids.length > 0 
+                ? req.userHierarchy.parliament_ids.map(p => String(p._id || p)) 
+                : [];
+            const divisionIds = req.userHierarchy.division_ids && req.userHierarchy.division_ids.length > 0 
+                ? req.userHierarchy.division_ids.map(d => String(d._id || d)) 
+                : [];
+            const stateIds = req.userHierarchy.state_ids && req.userHierarchy.state_ids.length > 0 
+                ? req.userHierarchy.state_ids.map(s => String(s._id || s)) 
+                : [];
+
+            // Check if BLA is within user's scope
+            let hasAccess = false;
+            
+            if (boothIds.length > 0) {
+                hasAccess = bla.booth_id && boothIds.includes(String(bla.booth_id._id || bla.booth_id));
+            } else if (blockIds.length > 0) {
+                hasAccess = bla.block_id && blockIds.includes(String(bla.block_id._id || bla.block_id));
+            } else if (assemblyIds.length > 0) {
+                hasAccess = bla.assembly_id && assemblyIds.includes(String(bla.assembly_id._id || bla.assembly_id));
+            } else if (parliamentIds.length > 0) {
+                hasAccess = bla.parliament_id && parliamentIds.includes(String(bla.parliament_id._id || bla.parliament_id));
+            } else if (divisionIds.length > 0) {
+                hasAccess = bla.division_id && divisionIds.includes(String(bla.division_id._id || bla.division_id));
+            } else if (stateIds.length > 0) {
+                hasAccess = bla.state_id && stateIds.includes(String(bla.state_id._id || bla.state_id));
+            }
 
             if (!hasAccess) {
                 return res.status(403).json({

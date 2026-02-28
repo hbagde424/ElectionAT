@@ -28,7 +28,44 @@ const getBLOs = async (req, res) => {
         // Build filter object
         const filter = {};
         
-        // Hierarchy filters
+        // Apply hierarchy restrictions based on user permissions
+        if (req.userHierarchy) {
+            // Get the most specific access level (booth > block > assembly > parliament > division > state)
+            const boothIds = req.userHierarchy.booth_ids && req.userHierarchy.booth_ids.length > 0 
+                ? req.userHierarchy.booth_ids.map(b => b._id || b) 
+                : [];
+            const blockIds = req.userHierarchy.block_ids && req.userHierarchy.block_ids.length > 0 
+                ? req.userHierarchy.block_ids.map(b => b._id || b) 
+                : [];
+            const assemblyIds = req.userHierarchy.assembly_ids && req.userHierarchy.assembly_ids.length > 0 
+                ? req.userHierarchy.assembly_ids.map(a => a._id || a) 
+                : [];
+            const parliamentIds = req.userHierarchy.parliament_ids && req.userHierarchy.parliament_ids.length > 0 
+                ? req.userHierarchy.parliament_ids.map(p => p._id || p) 
+                : [];
+            const divisionIds = req.userHierarchy.division_ids && req.userHierarchy.division_ids.length > 0 
+                ? req.userHierarchy.division_ids.map(d => d._id || d) 
+                : [];
+            const stateIds = req.userHierarchy.state_ids && req.userHierarchy.state_ids.length > 0 
+                ? req.userHierarchy.state_ids.map(s => s._id || s) 
+                : [];
+
+            if (boothIds.length > 0) {
+                filter.booth_id = { $in: boothIds };
+            } else if (blockIds.length > 0) {
+                filter.block_id = { $in: blockIds };
+            } else if (assemblyIds.length > 0) {
+                filter.assembly_id = { $in: assemblyIds };
+            } else if (parliamentIds.length > 0) {
+                filter.parliament_id = { $in: parliamentIds };
+            } else if (divisionIds.length > 0) {
+                filter.division_id = { $in: divisionIds };
+            } else if (stateIds.length > 0) {
+                filter.state_id = { $in: stateIds };
+            }
+        }
+        
+        // Hierarchy filters from query parameters (override hierarchy restrictions if provided)
         if (state_id) filter.state_id = state_id;
         if (division_id) filter.division_id = division_id;
         if (parliament_id) filter.parliament_id = parliament_id;
@@ -146,6 +183,53 @@ const getBLOById = async (req, res) => {
                 success: false,
                 message: 'BLO not found'
             });
+        }
+
+        // Check if user has access to this BLO based on hierarchy
+        if (req.userHierarchy) {
+            // Get the most specific access level (booth > block > assembly > parliament > division > state)
+            const boothIds = req.userHierarchy.booth_ids && req.userHierarchy.booth_ids.length > 0 
+                ? req.userHierarchy.booth_ids.map(b => String(b._id || b)) 
+                : [];
+            const blockIds = req.userHierarchy.block_ids && req.userHierarchy.block_ids.length > 0 
+                ? req.userHierarchy.block_ids.map(b => String(b._id || b)) 
+                : [];
+            const assemblyIds = req.userHierarchy.assembly_ids && req.userHierarchy.assembly_ids.length > 0 
+                ? req.userHierarchy.assembly_ids.map(a => String(a._id || a)) 
+                : [];
+            const parliamentIds = req.userHierarchy.parliament_ids && req.userHierarchy.parliament_ids.length > 0 
+                ? req.userHierarchy.parliament_ids.map(p => String(p._id || p)) 
+                : [];
+            const divisionIds = req.userHierarchy.division_ids && req.userHierarchy.division_ids.length > 0 
+                ? req.userHierarchy.division_ids.map(d => String(d._id || d)) 
+                : [];
+            const stateIds = req.userHierarchy.state_ids && req.userHierarchy.state_ids.length > 0 
+                ? req.userHierarchy.state_ids.map(s => String(s._id || s)) 
+                : [];
+
+            // Check if BLO is within user's scope
+            let hasAccess = false;
+            
+            if (boothIds.length > 0) {
+                hasAccess = blo.booth_id && boothIds.includes(String(blo.booth_id._id || blo.booth_id));
+            } else if (blockIds.length > 0) {
+                hasAccess = blo.block_id && blockIds.includes(String(blo.block_id._id || blo.block_id));
+            } else if (assemblyIds.length > 0) {
+                hasAccess = blo.assembly_id && assemblyIds.includes(String(blo.assembly_id._id || blo.assembly_id));
+            } else if (parliamentIds.length > 0) {
+                hasAccess = blo.parliament_id && parliamentIds.includes(String(blo.parliament_id._id || blo.parliament_id));
+            } else if (divisionIds.length > 0) {
+                hasAccess = blo.division_id && divisionIds.includes(String(blo.division_id._id || blo.division_id));
+            } else if (stateIds.length > 0) {
+                hasAccess = blo.state_id && stateIds.includes(String(blo.state_id._id || blo.state_id));
+            }
+
+            if (!hasAccess) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Access denied: Insufficient permissions for this BLO'
+                });
+            }
         }
 
         // Mask phone number in the response

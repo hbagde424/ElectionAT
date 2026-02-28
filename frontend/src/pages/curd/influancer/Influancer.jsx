@@ -103,8 +103,8 @@ export default function InfluencersListPage() {
     const referenceDataFetched = useRef(false);
 
     // Map state
-    const [blockNumberInput, setBlockNumberInput] = useState('ALL');
     const [yearFilter, setYearFilter] = useState('');
+    const [selectedMapYear, setSelectedMapYear] = useState('');
     const [boothGeoJSON, setBoothGeoJSON] = useState(null);
     const [mapTheme, setMapTheme] = useState('streets');
     const [mapError, setMapError] = useState('');
@@ -113,6 +113,16 @@ export default function InfluencersListPage() {
     const [boothsWithInfluencers, setBoothsWithInfluencers] = useState(new Set());
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
+
+    // Helper to add Authorization header when token exists
+    const getAuthHeaders = () => {
+        try {
+            const token = localStorage.serviceToken || localStorage.getItem('serviceToken');
+            return token ? { Authorization: `Bearer ${token}` } : {};
+        } catch (err) {
+            return {};
+        }
+    };
 
     // Fetch all influencers for filters
     const fetchAllInfluencersForFilters = async () => {
@@ -473,128 +483,173 @@ export default function InfluencersListPage() {
         }
     };
 
-    // Load booth polygons by block name or id (tries multiple backend endpoints)
-    const loadBoothPolygons = async (blockInput) => {
-        if (!blockInput) {
-            setMapError('Please select a Block');
-            return;
-        }
-        setMapError('');
+    // Load booth polygons filtered by user access (like booth CRUD page)
+    const loadBoothPolygons = async () => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            
+            // Fetch all booths
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`, { headers });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            
+            if (!json.success || !Array.isArray(json.data)) {
+                throw new Error('Invalid response format');
+            }
 
-            fetchBoothsWithInfluencers(yearFilter);
+            // Filter booths based on user hierarchy (most specific first)
+            let boothsToUse = json.data;
+            if (userHierarchy?.booth) {
+                boothsToUse = json.data.filter(b => String(b._id) === String(userHierarchy.booth._id || userHierarchy.booth));
+            } else if (userHierarchy?.block) {
+                boothsToUse = json.data.filter(b => String(b.block_id?._id || b.block_id) === String(userHierarchy.block._id || userHierarchy.block));
+            } else if (userHierarchy?.assembly) {
+                boothsToUse = json.data.filter(b => String(b.assembly_id?._id || b.assembly_id) === String(userHierarchy.assembly._id || userHierarchy.assembly));
+            } else if (userHierarchy?.parliament) {
+                boothsToUse = json.data.filter(b => String(b.parliament_id?._id || b.parliament_id) === String(userHierarchy.parliament._id || userHierarchy.parliament));
+            } else if (userHierarchy?.division) {
+                boothsToUse = json.data.filter(b => String(b.division_id?._id || b.division_id) === String(userHierarchy.division._id || userHierarchy.division));
+            } else if (userHierarchy?.state) {
+                boothsToUse = json.data.filter(b => String(b.state_id?._id || b.state_id) === String(userHierarchy.state._id || userHierarchy.state));
+            }
 
-            // If user selected ALL blocks, fetch all polygons (large result)
-            if (blockInput === 'ALL') {
-                const apiUrl = import.meta.env.VITE_APP_API_URL || 'https://myhostmanager.co.in/backend/api';
-                const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
-                const resp = await fetch(url, { headers });
+            console.log('📍 Filtered booths for user access:', boothsToUse.length, 'out of', json.data.length);
 
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const j = await resp.json();
+            // Fetch influencers to get list of booths with data
+            const influencersRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?all=true&limit=50000`, { headers });
+            const influencersJson = await influencersRes.json();
+            const boothsWithInfluencers = new Set();
+            if (influencersJson.success && Array.isArray(influencersJson.data)) {
+                influencersJson.data.forEach(influencer => {
+                    if (influencer.booth_id) {
+                        boothsWithInfluencers.add(String(influencer.booth_id._id || influencer.booth_id));
+                    }
+                });
+            }
+            console.log('📊 Booths with influencer data:', boothsWithInfluencers.size);
 
-                let features = j.features || j.data || [];
-                if (features.length === 1 && features[0] && features[0].features && Array.isArray(features[0].features)) {
-                    features = features[0].features;
-                }
-                if (!features || !Array.isArray(features) || features.length === 0) {
-                    setMapError('No booth polygons found');
-                    setBoothGeoJSON(null);
-                    return;
-                }
-                const fc = { type: 'FeatureCollection', features };
-                setBoothGeoJSON(fc);
-                setTimeout(() => {
-                    try {
-                        const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-                        if (!map || !fc.features?.length) return;
-                        const coords = [];
-                        fc.features.forEach(f => {
-                            const geom = f.geometry;
-                            if (!geom) return;
-                            const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
-                            if (geom.type === 'Polygon') collect(geom.coordinates);
-                            if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+            // Extract polygons from booths that have polygon data AND have influencer data
+            const features = [];
+            boothsToUse.forEach(booth => {
+                // Only include booths that have influencer data
+                if (booth.polygon && boothsWithInfluencers.has(String(booth._id))) {
+                    let featureToAdd = null;
+                    
+                    if (booth.polygon.type === 'Feature') {
+                        featureToAdd = {
+                            ...booth.polygon,
+                            properties: {
+                                booth_id: booth._id,
+                                booth_number: booth.booth_number,
+                                booth_name: booth.name
+                            }
+                        };
+                    } else if (booth.polygon.type === 'FeatureCollection' && Array.isArray(booth.polygon.features)) {
+                        booth.polygon.features.forEach(feat => {
+                            features.push({
+                                ...feat,
+                                properties: {
+                                    booth_id: booth._id,
+                                    booth_number: booth.booth_number,
+                                    booth_name: booth.name
+                                }
+                            });
                         });
-                        if (coords.length) {
-                            const lons = coords.map(c => c[0]);
-                            const lats = coords.map(c => c[1]);
-                            const bounds = [
-                                [Math.min(...lons), Math.min(...lats)],
-                                [Math.max(...lons), Math.max(...lats)]
-                            ];
-                            map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
-                        }
-                    } catch { }
-                }, 0);
-                return;
-            }
-
-            // Try multiple endpoints in order until we get features
-            const candidates = [
-                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block/${encodeURIComponent(blockInput)}`,
-                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${encodeURIComponent(blockInput)}`,
-                `${import.meta.env.VITE_APP_API_URL}/booth-polygons?block=${encodeURIComponent(blockInput)}`
-            ];
-
-            let json = null;
-            for (const url of candidates) {
-                try {
-                    const resp = await fetch(url, { headers });
-                    if (!resp.ok) {
-                        console.warn('Non-ok response from', url, resp.status);
-                        continue;
+                        return;
                     }
-                    const j = await resp.json();
-                    const features = j.features || (Array.isArray(j) ? j : (j.data || null));
-                    if (features && Array.isArray(features) && features.length > 0) {
-                        json = { type: 'FeatureCollection', features };
-                        break;
+                    
+                    if (featureToAdd) {
+                        features.push(featureToAdd);
                     }
-                } catch (innerErr) {
-                    console.warn('Error fetching booth polygons from candidate url:', innerErr);
                 }
-            }
+            });
 
-            if (!json) {
-                setMapError(`No booth polygons found for block '${blockInput}'`);
+            if (!features.length) {
+                setMapError('No booth polygons found with influencer data for your access level');
                 setBoothGeoJSON(null);
                 return;
             }
 
-            const fc = { type: 'FeatureCollection', features: json.features };
+            const fc = { type: 'FeatureCollection', features };
+            console.log('✅ Loaded booth polygons with data:', features.length);
             setBoothGeoJSON(fc);
-            setTimeout(() => {
-                try {
-                    const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-                    if (!map || !fc.features?.length) return;
-                    const coords = [];
-                    fc.features.forEach(f => {
-                        const geom = f.geometry;
-                        if (!geom) return;
-                        const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
-                        if (geom.type === 'Polygon') collect(geom.coordinates);
-                        if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
-                    });
-                    if (coords.length) {
-                        const lons = coords.map(c => c[0]);
-                        const lats = coords.map(c => c[1]);
-                        const bounds = [
-                            [Math.min(...lons), Math.min(...lats)],
-                            [Math.max(...lons), Math.max(...lats)]
-                        ];
-                        map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
-                    }
-                } catch { }
-            }, 0);
+            setMapError('');
+
+            // Fetch booths with influencers for marker colors
+            fetchBoothsWithInfluencers(yearFilter);
         } catch (e) {
             console.error('Failed to load booth polygons:', e);
             setMapError(`Failed to load booth polygons: ${e.message}`);
             setBoothGeoJSON(null);
         }
     };
+
+    // Auto-load polygons on component mount and when user hierarchy changes
+    useEffect(() => {
+        if (mapboxToken) {
+            loadBoothPolygons();
+        }
+    }, [mapboxToken, userHierarchy]);
+
+    // Fit bounds when boothGeoJSON changes
+    useEffect(() => {
+        if (!boothGeoJSON?.features?.length) return;
+
+        const fitMapBounds = (attempt = 0) => {
+            try {
+                const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                
+                if (!map || !map.getStyle) {
+                    if (attempt < 10) {
+                        console.log(`⏳ Map not ready for fitBounds, retrying... (attempt ${attempt + 1}/10)`);
+                        setTimeout(() => fitMapBounds(attempt + 1), 200);
+                    }
+                    return;
+                }
+
+                const fc = boothGeoJSON;
+                const coords = [];
+                fc.features.forEach(f => {
+                    const geom = f.geometry;
+                    if (!geom) return;
+                    const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
+                    if (geom.type === 'Polygon') collect(geom.coordinates);
+                    if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+                });
+
+                if (!coords.length) {
+                    console.warn('⚠️ No coordinates found in features');
+                    return;
+                }
+
+                const lons = coords.map(c => c[0]);
+                const lats = coords.map(c => c[1]);
+                const bounds = [
+                    [Math.min(...lons), Math.min(...lats)],
+                    [Math.max(...lons), Math.max(...lats)]
+                ];
+
+                console.log('🎯 Fitting map bounds:', bounds);
+                map.fitBounds(bounds, { padding: 40, maxZoom: 15, duration: 1000 });
+            } catch (e) {
+                console.warn('Auto-fit bounds error:', e);
+                if (attempt < 10) {
+                    setTimeout(() => fitMapBounds(attempt + 1), 200);
+                }
+            }
+        };
+
+        fitMapBounds();
+    }, [boothGeoJSON]);
+
+    // Refresh influencer markers when year filter changes
+    useEffect(() => {
+        if (boothGeoJSON && yearFilter !== undefined) {
+            fetchBoothsWithInfluencers(yearFilter);
+            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        }
+    }, [yearFilter]);
 
     // Auto-load ALL blocks map on component mount
     useEffect(() => {
@@ -698,32 +753,8 @@ export default function InfluencersListPage() {
             if (selectedFalliya) query += `&falliya_id=${selectedFalliya}`;
             if (yearFilter) query += `&year=${yearFilter}`;
 
-            // Add hierarchy-based filtering
-            if (userHierarchy) {
-                const highestLevel = getUserHighestLevel();
-                if (highestLevel) {
-                    switch (highestLevel.level) {
-                        case 'state':
-                            query += `&state_id=${highestLevel.value}`;
-                            break;
-                        case 'division':
-                            query += `&division_id=${highestLevel.value}`;
-                            break;
-                        case 'parliament':
-                            query += `&parliament_id=${highestLevel.value}`;
-                            break;
-                        case 'assembly':
-                            query += `&assembly_id=${highestLevel.value}`;
-                            break;
-                        case 'block':
-                            query += `&block_id=${highestLevel.value}`;
-                            break;
-                        case 'booth':
-                            query += `&booth_id=${highestLevel.value}`;
-                            break;
-                    }
-                }
-            }
+            // Add hierarchy-based filtering (backend handles this via middleware)
+            // No need to add filters here - backend will apply them automatically
 
             // When searching, fetch all results on first page
             let currentPage = pageIndex + 1;
@@ -733,7 +764,9 @@ export default function InfluencersListPage() {
                 currentLimit = 10000; // Get all results when searching
             }
 
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?page=${currentPage}&limit=${currentLimit}${query}`);
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?page=${currentPage}&limit=${currentLimit}${query}`, { headers });
             const json = await res.json();
             if (json.success) {
                 setInfluencers(json.data);
@@ -1318,23 +1351,6 @@ export default function InfluencersListPage() {
                             <TextField
                                 select
                                 size="small"
-                                label="Block"
-                                value={blockNumberInput}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    setBlockNumberInput(value);
-                                }}
-                                sx={{ width: { xs: '100%', sm: 260 } }}
-                            >
-                                <MenuItem value="">Select Block</MenuItem>
-                                <MenuItem value="ALL">All Blocks</MenuItem>
-                                {blocks?.map((b) => (
-                                    <MenuItem key={b._id} value={b.name}>{b.name}</MenuItem>
-                                ))}
-                            </TextField>
-                            <TextField
-                                select
-                                size="small"
                                 label="Year"
                                 value={yearFilter}
                                 onChange={(e) => setYearFilter(e.target.value)}
@@ -1345,9 +1361,6 @@ export default function InfluencersListPage() {
                                     <MenuItem key={year} value={year}>{year}</MenuItem>
                                 ))}
                             </TextField>
-                            <Button variant="contained" size="small" onClick={() => loadBoothPolygons(blockNumberInput)}>
-                                Load Polygons
-                            </Button>
                             <TextField
                                 select
                                 size="small"
