@@ -112,6 +112,14 @@ const Users = () => {
         }
     }, [users, currentUserHierarchy]);
 
+    // Auto-dismiss success message after 3 seconds
+    useEffect(() => {
+        if (success) {
+            const timer = setTimeout(() => setSuccess(''), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [success]);
+
     const fetchCurrentUserHierarchy = async () => {
         try {
             // Get current user ID from localStorage or context
@@ -284,6 +292,7 @@ const Users = () => {
             setRoleDialog(false);
             setSelectedUser(null);
             setSelectedRole('');
+            setSuccess('Role assigned successfully');
             fetchUsers();
             setError('');
         } catch (error) {
@@ -310,6 +319,7 @@ const Users = () => {
                 block: '',
                 booth: ''
             });
+            setSuccess('Geographic access updated successfully');
             fetchUsers();
             setError('');
         } catch (error) {
@@ -323,6 +333,7 @@ const Users = () => {
             await axiosServices.delete('/user-roles', {
                 data: { userId, roleId }
             });
+            setSuccess('Role removed successfully');
             fetchUsers();
         } catch (error) {
             console.error('Error removing role:', error);
@@ -394,7 +405,7 @@ const Users = () => {
         }
     };
 
-    const handleUserAction = (action, user) => {
+    const handleUserAction = async (action, user) => {
         setSelectedUser(user);
         switch (action) {
             case 'edit':
@@ -423,12 +434,52 @@ const Users = () => {
                     setError('You do not have permission to assign roles');
                     return;
                 }
+                // Reset role selection first
+                setSelectedRole('');
+                // Load existing roles for this user
+                try {
+                    const rolesRes = await axiosServices.get(`/user-roles/user/${user._id}`);
+                    const userRolesList = rolesRes.data.data || rolesRes.data || [];
+                    console.log('User roles loaded:', userRolesList);
+                    if (Array.isArray(userRolesList) && userRolesList.length > 0) {
+                        // Set the first role's ID
+                        const firstRoleId = userRolesList[0].role?._id || userRolesList[0].role;
+                        console.log('Setting selected role to:', firstRoleId);
+                        setSelectedRole(firstRoleId);
+                    }
+                } catch (err) {
+                    console.error('Error loading user roles:', err);
+                    setSelectedRole('');
+                }
                 setRoleDialog(true);
                 break;
             case 'hierarchy':
                 if (!hasPermission('user_hierarchy_assign')) {
                     setError('You do not have permission to assign geographic access');
                     return;
+                }
+                // Load existing hierarchy for this user
+                try {
+                    const hierarchyRes = await axiosServices.get(`/user-hierarchy/${user._id}`);
+                    const existingHierarchy = hierarchyRes.data.data || hierarchyRes.data || {};
+                    setSelectedHierarchy({
+                        state: existingHierarchy.state?._id || existingHierarchy.state || '',
+                        division: existingHierarchy.division?._id || existingHierarchy.division || '',
+                        parliament: existingHierarchy.parliament?._id || existingHierarchy.parliament || '',
+                        assembly: existingHierarchy.assembly?._id || existingHierarchy.assembly || '',
+                        block: existingHierarchy.block?._id || existingHierarchy.block || '',
+                        booth: existingHierarchy.booth?._id || existingHierarchy.booth || ''
+                    });
+                } catch (err) {
+                    console.error('Error loading user hierarchy:', err);
+                    setSelectedHierarchy({
+                        state: '',
+                        division: '',
+                        parliament: '',
+                        assembly: '',
+                        block: '',
+                        booth: ''
+                    });
                 }
                 setHierarchyDialog(true);
                 break;
@@ -685,7 +736,10 @@ const Users = () => {
             </TableContainer>
 
             {/* Role Assignment Dialog */}
-            <Dialog open={roleDialog} onClose={() => setRoleDialog(false)} maxWidth="sm" fullWidth>
+            <Dialog open={roleDialog} onClose={() => {
+                setRoleDialog(false);
+                setSelectedRole('');
+            }} maxWidth="sm" fullWidth>
                 <DialogTitle>
                     <Stack direction="row" alignItems="center" spacing={1}>
                         <Security />
@@ -693,29 +747,38 @@ const Users = () => {
                     </Stack>
                 </DialogTitle>
                 <DialogContent>
-                    <FormControl fullWidth margin="normal">
-                        <InputLabel>Select Role</InputLabel>
-                        <Select
-                            value={selectedRole}
-                            onChange={(e) => setSelectedRole(e.target.value)}
-                            label="Select Role"
-                        >
-                            {roles.map((role) => (
-                                <MenuItem key={role._id} value={role._id}>
-                                    <Box>
-                                        <Typography>{role.name}</Typography>
-                                        <Typography variant="caption" color="text.secondary">
-                                            {role.description}
-                                        </Typography>
-                                    </Box>
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
+                    {roles.length === 0 ? (
+                        <Alert severity="warning" sx={{ mt: 2 }}>
+                            No roles available. Please create roles first.
+                        </Alert>
+                    ) : (
+                        <FormControl fullWidth margin="normal">
+                            <InputLabel>Select Role</InputLabel>
+                            <Select
+                                value={selectedRole}
+                                onChange={(e) => setSelectedRole(e.target.value)}
+                                label="Select Role"
+                            >
+                                {roles.map((role) => (
+                                    <MenuItem key={role._id} value={role._id}>
+                                        <Box>
+                                            <Typography>{role.name}</Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                {role.description}
+                                            </Typography>
+                                        </Box>
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setRoleDialog(false)}>Cancel</Button>
-                    <Button onClick={handleAssignRole} variant="contained">
+                    <Button onClick={() => {
+                        setRoleDialog(false);
+                        setSelectedRole('');
+                    }}>Cancel</Button>
+                    <Button onClick={handleAssignRole} variant="contained" disabled={!selectedRole || roles.length === 0}>
                         Assign Role
                     </Button>
                 </DialogActions>
