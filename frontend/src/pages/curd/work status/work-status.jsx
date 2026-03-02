@@ -68,7 +68,7 @@ export default function WorkStatusListPage() {
     const [mapError, setMapError] = useState('');
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
-    const [boothsWithWorkStatus, setBoothsWithWorkStatus] = useState(new Set());
+    const [boothsWithWorkStatus, setBoothsWithWorkStatus] = useState({ ids: new Set(), numbers: new Set() });
     // Memoized maps/sets for efficient lookups
     const normalizeBoothNo = (raw) => {
         if (raw === null || raw === undefined) return '';
@@ -85,13 +85,9 @@ export default function WorkStatusListPage() {
         return m;
     }, [booths]);
     const boothNumbersWithWorkStatus = useMemo(() => {
-        const s = new Set();
-        boothsWithWorkStatus.forEach((id) => {
-            const key = boothIdToNumberMap.get(String(id));
-            if (key) s.add(key);
-        });
-        return s;
-    }, [boothsWithWorkStatus, boothIdToNumberMap]);
+        // Already normalized in fetchBoothsWithWorkStatus
+        return boothsWithWorkStatus.numbers;
+    }, [boothsWithWorkStatus.numbers]);
 
     // Build a deduped FeatureCollection of point markers from booth polygons
     const boothMarkersGeoJSON = useMemo(() => {
@@ -157,18 +153,69 @@ export default function WorkStatusListPage() {
 
             if (!shouldKeep) continue;
             keptCentroids.push(center);
-            const hasWork = boothNumbersWithWorkStatus.has(boothNoNorm);
-            features.push({
-                type: 'Feature',
-                geometry: { type: 'Point', coordinates: center },
-                properties: { ...props, boothNo: boothNoRaw, hasWorkStatus: hasWork }
-            });
+            const hasWorkStatus = boothNumbersWithWorkStatus.has(boothNoNorm);
+            
+            // Only add markers for booths WITH work status
+            if (hasWorkStatus) {
+                features.push({
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: center },
+                    properties: { ...props, boothNo: boothNoRaw, hasWorkStatus: hasWorkStatus }
+                });
+            }
         }
 
         return { type: 'FeatureCollection', features };
     }, [boothGeoJSON, boothNumbersWithWorkStatus]);
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
+
+    // Auto zoom to fit filtered polygons (only booths with work status data)
+    const autoZoomToFilteredPolygons = () => {
+        setTimeout(() => {
+            try {
+                const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
+                if (!map || !boothGeoJSON?.features?.length) return;
+                
+                // Filter features to only include booths with work status data
+                const filteredFeatures = boothGeoJSON.features.filter(feature => {
+                    const props = feature.properties || {};
+                    const boothId = props._id || props.id || props.booth_id;
+                    const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number;
+                    
+                    const hasData = (
+                        (boothId && boothsWithWorkStatus.ids.has(String(boothId))) ||
+                        (boothNo && boothsWithWorkStatus.numbers.has(String(boothNo).trim().toLowerCase()))
+                    );
+                    
+                    return hasData;
+                });
+
+                if (filteredFeatures.length === 0) return;
+
+                const coords = [];
+                filteredFeatures.forEach(f => {
+                    const geom = f.geometry;
+                    if (!geom) return;
+                    const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
+                    if (geom.type === 'Polygon') collect(geom.coordinates);
+                    if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
+                });
+                
+                if (coords.length) {
+                    const lons = coords.map(c => c[0]);
+                    const lats = coords.map(c => c[1]);
+                    const bounds = [
+                        [Math.min(...lons), Math.min(...lats)],
+                        [Math.max(...lons), Math.max(...lats)]
+                    ];
+                    map.fitBounds(bounds, { padding: 50, maxZoom: 15 });
+                }
+            } catch (err) {
+                console.error('Auto zoom error:', err);
+            }
+        }, 300);
+    };
 
     useEffect(() => {
         setSearchInput(globalFilter || '');
@@ -192,6 +239,14 @@ export default function WorkStatusListPage() {
             setPagination(prev => ({ ...prev, pageIndex: 0 }));
         }
     }, [yearFilter]);
+
+    // Auto zoom to filtered polygons when boothsWithWorkStatus updates
+    useEffect(() => {
+        if (boothGeoJSON && boothsWithWorkStatus.ids.size > 0) {
+            autoZoomToFilteredPolygons();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [boothsWithWorkStatus]);
 
     // Filter states
     const [filters, setFilters] = useState({
@@ -489,14 +544,25 @@ export default function WorkStatusListPage() {
             const workStatusJson = await workStatusRes.json();
             if (workStatusJson.success && Array.isArray(workStatusJson.data)) {
                 const boothIds = new Set();
+                const boothNumbers = new Set();
+                
                 workStatusJson.data.forEach(workStatus => {
                     if (workStatus.booth_id) {
                         const boothId = workStatus.booth_id._id || workStatus.booth_id;
                         boothIds.add(String(boothId));
+                        
+                        // If booth object contains booth_number, capture it too (normalized)
+                        if (workStatus.booth_id.booth_number !== undefined && workStatus.booth_id.booth_number !== null) {
+                            const normalized = normalizeBoothNo(workStatus.booth_id.booth_number);
+                            if (normalized) {
+                                boothNumbers.add(normalized);
+                            }
+                        }
                     }
                 });
-                setBoothsWithWorkStatus(boothIds);
-                console.log('✅ Booths with work status updated (Year: ' + (selectedYear || 'All') + '):', boothIds.size);
+                
+                setBoothsWithWorkStatus({ ids: boothIds, numbers: boothNumbers });
+                console.log('✅ Booths with work status updated (Year: ' + (selectedYear || 'All') + '):', { ids: boothIds.size, numbers: boothNumbers.size });
             }
         } catch (err) {
             console.warn('Failed to fetch booths with work status:', err);
@@ -542,7 +608,7 @@ export default function WorkStatusListPage() {
             // Support fetching ALL polygons (could be large)
             if (blockNumberVal === 'ALL') {
                 const apiUrl = import.meta.env.VITE_APP_API_URL || '';
-                const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
+                const url = `${apiUrl}/booths/polygons?limit=50000&page=1`;
                 console.log('[work-status] Loading ALL booth polygons from', url);
                 const resp = await fetch(url, { headers });
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -591,9 +657,8 @@ export default function WorkStatusListPage() {
 
             // Try multiple endpoints (block id, block-number, query param)
             const candidates = [
-                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block/${encodeURIComponent(blockNumberVal)}`,
-                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${encodeURIComponent(blockNumberVal)}`,
-                `${import.meta.env.VITE_APP_API_URL}/booth-polygons?block=${encodeURIComponent(blockNumberVal)}`
+                `${import.meta.env.VITE_APP_API_URL}/booths/polygons/block/${encodeURIComponent(blockNumberVal)}`,
+                `${import.meta.env.VITE_APP_API_URL}/booths/polygons?block=${encodeURIComponent(blockNumberVal)}`
             ];
             console.log('[work-status] Trying candidate booth polygon endpoints for block:', blockNumberVal, candidates);
             let json = null;
@@ -1465,7 +1530,26 @@ export default function WorkStatusListPage() {
                         >
                             <MapControl />
                             {boothGeoJSON && (
-                                <Source id="booth-polygons" type="geojson" data={boothGeoJSON}>
+                                <Source 
+                                    id="booth-polygons" 
+                                    type="geojson" 
+                                    data={{
+                                        type: 'FeatureCollection',
+                                        features: boothGeoJSON.features.filter(feature => {
+                                            const props = feature.properties || {};
+                                            const boothId = props._id || props.id || props.booth_id;
+                                            const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number;
+                                            
+                                            // Check if this booth has work status data (by ID or booth number)
+                                            const hasData = (
+                                                (boothId && boothsWithWorkStatus.ids.has(String(boothId))) ||
+                                                (boothNo && boothsWithWorkStatus.numbers.has(String(boothNo).trim().toLowerCase()))
+                                            );
+                                            
+                                            return hasData;
+                                        })
+                                    }}
+                                >
                                     <Layer
                                         id="booth-fill"
                                         type="fill"
@@ -1491,20 +1575,15 @@ export default function WorkStatusListPage() {
                                     />
                                 </Source>
                             )}
-                            {/* Work Status Markers Layer - Show green dots for booths with data, red for without */}
-                            {boothGeoJSON && (
+                            {/* Work Status Markers Layer - Show green dots for booths with data only */}
+                            {boothMarkersGeoJSON && (
                                 <Source id="booth-markers" type="geojson" data={boothMarkersGeoJSON}>
                                     <Layer
                                         id="booth-work-status-markers"
                                         type="circle"
                                         paint={{
                                             'circle-radius': 6,
-                                            'circle-color': [
-                                                'case',
-                                                ['get', 'hasWorkStatus'],
-                                                '#22c55e',
-                                                '#ef4444'
-                                            ],
+                                            'circle-color': '#22c55e',
                                             'circle-stroke-width': 2,
                                             'circle-stroke-color': '#ffffff',
                                             'circle-opacity': 0.9
@@ -1531,17 +1610,6 @@ export default function WorkStatusListPage() {
                                     boxShadow: 1
                                 }} />
                                 <Typography variant="caption">Has Work Status</Typography>
-                            </Stack>
-                            <Stack direction="row" spacing={1} alignItems="center">
-                                <Box sx={{
-                                    width: 16,
-                                    height: 16,
-                                    borderRadius: '50%',
-                                    backgroundColor: '#ef4444',
-                                    border: '2px solid #ffffff',
-                                    boxShadow: 1
-                                }} />
-                                <Typography variant="caption">No Work Status</Typography>
                             </Stack>
                         </Stack>
                     </Paper>

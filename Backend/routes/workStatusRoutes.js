@@ -182,33 +182,9 @@ router.get('/statistics', protect, getUserPermissionsAndHierarchy, getWorkStatus
 
 /**
  * @swagger
- * /api/work-status/{id}:
- *   get:
- *     summary: Get single work status
- *     tags: [Work Status]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Work status data
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/WorkStatus'
- *       404:
- *         description: Work status not found
- */
-router.get('/:id', protect, validateObjectIdParams, getUserPermissionsAndHierarchy, getWorkStatus);
-
-/**
- * @swagger
- * /api/work-status:
+ * /api/work-status/import:
  *   post:
- *     summary: Create new work status
+ *     summary: Import work status from Excel
  *     tags: [Work Status]
  *     security:
  *       - bearerAuth: []
@@ -217,72 +193,19 @@ router.get('/:id', protect, validateObjectIdParams, getUserPermissionsAndHierarc
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/WorkStatus'
- *     responses:
- *       201:
- *         description: Work status created successfully
- *       400:
- *         description: Invalid input data
- *       401:
- *         description: Not authorized
- */
-router.post('/', protect, authorize('admin', 'superAdmin'), createWorkStatus);
-
-/**
- * @swagger
- * /api/work-status/{id}:
- *   put:
- *     summary: Update work status
- *     tags: [Work Status]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/WorkStatus'
+ *             type: object
+ *             properties:
+ *               rows:
+ *                 type: array
+ *                 items:
+ *                   type: object
  *     responses:
  *       200:
- *         description: Work status updated successfully
- *       400:
- *         description: Invalid input data
+ *         description: Import summary
  *       401:
- *         description: Not authorized
- *       404:
- *         description: Work status not found
+ *         description: Unauthorized
  */
-router.put('/:id', validateObjectIdParams, protect, authorize('admin', 'superAdmin'), updateWorkStatus);
-
-/**
- * @swagger
- * /api/work-status/{id}:
- *   delete:
- *     summary: Delete work status
- *     tags: [Work Status]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Work status deleted
- *       401:
- *         description: Not authorized
- *       404:
- *         description: Work status not found
- */
-router.delete('/:id', validateObjectIdParams, protect, authorize('admin', 'superAdmin'), deleteWorkStatus);
+router.post('/import', protect, authorize('superAdmin'), importWorkStatuses);
 
 /**
  * @swagger
@@ -385,9 +308,33 @@ router.get('/assembly/:assemblyId', protect, validateObjectIdParams, getUserPerm
 
 /**
  * @swagger
- * /api/work-status/import:
+ * /api/work-status/{id}:
+ *   get:
+ *     summary: Get single work status
+ *     tags: [Work Status]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Work status data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WorkStatus'
+ *       404:
+ *         description: Work status not found
+ */
+router.get('/:id', protect, validateObjectIdParams, getUserPermissionsAndHierarchy, getWorkStatus);
+
+/**
+ * @swagger
+ * /api/work-status:
  *   post:
- *     summary: Import work status from Excel
+ *     summary: Create new work status
  *     tags: [Work Status]
  *     security:
  *       - bearerAuth: []
@@ -396,19 +343,72 @@ router.get('/assembly/:assemblyId', protect, validateObjectIdParams, getUserPerm
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               rows:
- *                 type: array
- *                 items:
- *                   type: object
+ *             $ref: '#/components/schemas/WorkStatus'
+ *     responses:
+ *       201:
+ *         description: Work status created successfully
+ *       400:
+ *         description: Invalid input data
+ *       401:
+ *         description: Not authorized
+ */
+router.post('/', protect, authorize('admin', 'superAdmin'), createWorkStatus);
+
+/**
+ * @swagger
+ * /api/work-status/{id}:
+ *   put:
+ *     summary: Update work status
+ *     tags: [Work Status]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/WorkStatus'
  *     responses:
  *       200:
- *         description: Import summary
+ *         description: Work status updated successfully
+ *       400:
+ *         description: Invalid input data
  *       401:
- *         description: Unauthorized
+ *         description: Not authorized
+ *       404:
+ *         description: Work status not found
  */
-router.post('/import', protect, authorize('superAdmin'), importWorkStatuses);
+router.put('/:id', validateObjectIdParams, protect, authorize('admin', 'superAdmin'), updateWorkStatus);
+
+/**
+ * @swagger
+ * /api/work-status/{id}:
+ *   delete:
+ *     summary: Delete work status
+ *     tags: [Work Status]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Work status deleted
+ *       401:
+ *         description: Not authorized
+ *       404:
+ *         description: Work status not found
+ */
+router.delete('/:id', validateObjectIdParams, protect, authorize('admin', 'superAdmin'), deleteWorkStatus);
 
 /**
  * @swagger
