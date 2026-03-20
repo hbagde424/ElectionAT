@@ -648,7 +648,12 @@ exports.getAssemblyRelatedData = async (req, res, next) => {
       Visit.find({ assembly_id: id }).populate('assembly_id', 'name').limit(100),
       VotingTrends.find({ assembly_id: id }).populate('assembly_id', 'name').limit(100),
       WinningParty.find({ assembly_id: id }).populate('assembly_id', 'name').limit(100),
-      WinningCandidate.find({ assembly_id: id }).populate('assembly_id', 'name').limit(100),
+      WinningCandidate.find({ assembly_id: id })
+        .populate('assembly_id', 'name')
+        .populate('candidate_id', 'name')
+        .populate('party_id', 'name')
+        .populate('year_id', 'year')
+        .limit(100),
       WorkStatus.find({ assembly_id: id }).populate('assembly_id', 'name').limit(100),
       ParliamentVotes.find({ assembly_id: id }).populate('assembly_id', 'name').limit(100),
       BlockVotes.find({ assembly_id: id }).populate('assembly_id', 'name').limit(100),
