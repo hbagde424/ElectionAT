@@ -819,3 +819,110 @@ exports.getBlockPolygonsByAssembly = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Get all block-related data from all tables
+// @route   GET /api/blocks/:id/related-data
+// @access  Public
+exports.getBlockRelatedData = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid block ID'
+      });
+    }
+
+    const block = await Block.findById(id)
+      .populate('assembly_id', 'name')
+      .populate('parliament_id', 'name')
+      .populate('division_id', 'name')
+      .populate('state_id', 'name')
+      .populate('created_by', 'username');
+
+    if (!block) {
+      return res.status(404).json({
+        success: false,
+        message: 'Block not found'
+      });
+    }
+
+    // Fetch all related data from tables with block_id
+    const Booth = require('../models/booth');
+    const Gender = require('../models/gender');
+    const CasteList = require('../models/CasteList');
+    const Event = require('../models/Event');
+    const PartyActivity = require('../models/partyActivity');
+    const Visit = require('../models/Visit');
+    const Influencer = require('../models/influencer');
+    const BLA = require('../models/BLA');
+    const BLO = require('../models/BLO');
+    const LocalIssue = require('../models/LocalIssue');
+    const Samiti = require('../models/Samiti');
+    const WorkStatus = require('../models/WorkStatus');
+    const BoothVolunteers = require('../models/boothVolunteers');
+    const BoothVotes = require('../models/boothVotes');
+    const BlockVotes = require('../models/blockVotes');
+
+    const [
+      booths,
+      boothCount,
+      genders,
+      casteLists,
+      events,
+      partyActivities,
+      visits,
+      influencers,
+      blas,
+      blos,
+      localIssues,
+      samitis,
+      workStatus,
+      boothVolunteers,
+      boothVotes,
+      blockVotes
+    ] = await Promise.all([
+      Booth.find({ block_id: id }).populate('block_id', 'name').limit(100),
+      Booth.countDocuments({ block_id: id }),
+      Gender.find({ block_id: id }).populate('block_id', 'name').limit(100),
+      CasteList.find({ block_id: id }).populate('block_id', 'name').limit(100),
+      Event.find({ block_id: id }).populate('block_id', 'name').limit(100),
+      PartyActivity.find({ block_id: id }).populate('block_id', 'name').limit(100),
+      Visit.find({ block_id: id }).populate('block_id', 'name').limit(100),
+      Influencer.find({ block_id: id }).populate('block_id', 'name').limit(100),
+      BLA.find({ block_id: id }).populate('block_id', 'name').limit(100),
+      BLO.find({ block_id: id }).populate('block_id', 'name').limit(100),
+      LocalIssue.find({ block_id: id }).populate('block_id', 'name').limit(100),
+      Samiti.find({ block_id: id }).populate('block_id', 'name').limit(100),
+      WorkStatus.find({ block_id: id }).populate('block_id', 'name').limit(100),
+      BoothVolunteers.find({ block_id: id }).populate('block_id', 'name').limit(100),
+      BoothVotes.find({ block_id: id }).populate('block_id', 'name').limit(100),
+      BlockVotes.find({ block_id: id }).populate('block_id', 'name').limit(100)
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        block,
+        booths: { count: boothCount, data: booths },
+        genders: { count: genders.length, data: genders },
+        casteLists: { count: casteLists.length, data: casteLists },
+        events: { count: events.length, data: events },
+        partyActivities: { count: partyActivities.length, data: partyActivities },
+        visits: { count: visits.length, data: visits },
+        influencers: { count: influencers.length, data: influencers },
+        blas: { count: blas.length, data: blas },
+        blos: { count: blos.length, data: blos },
+        localIssues: { count: localIssues.length, data: localIssues },
+        samitis: { count: samitis.length, data: samitis },
+        workStatus: { count: workStatus.length, data: workStatus },
+        boothVolunteers: { count: boothVolunteers.length, data: boothVolunteers },
+        boothVotes: { count: boothVotes.length, data: boothVotes },
+        blockVotes: { count: blockVotes.length, data: blockVotes }
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
