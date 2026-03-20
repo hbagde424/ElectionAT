@@ -559,7 +559,12 @@ exports.getParliamentRelatedData = async (req, res, next) => {
       VotingTrends.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
       Village.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
       PartyActivity.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
-      ParliamentCandidate.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
+      ParliamentCandidate.find({ parliament_id: id })
+        .populate('parliament_id', 'name')
+        .populate('candidate_id', 'name')
+        .populate('party_id', 'name')
+        .populate('election_year_id', 'year')
+        .limit(100),
       ParliamentVotes.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
       Panchayat.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
       LocalIssue.find({ parliament_id: id }).populate('parliament_id', 'name').limit(100),
