@@ -11,7 +11,8 @@ const {
   importBlocks,
   uploadBlockPolygon,
   getBlockPolygons,
-  getBlockPolygonsByAssembly
+  getBlockPolygonsByAssembly,
+  getBlockRelatedData
 } = require('../controllers/blockController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -119,6 +120,9 @@ router.get('/parliament/:parliamentId', getBlocksByParliament);
  */
 // Public: no authentication required for reading block data
 router.get('/', getBlocks);
+
+// GET /api/blocks/:id/related-data - must come before GET /api/blocks/:id
+router.get('/:id/related-data', getBlockRelatedData);
 
 /**
  * @swagger

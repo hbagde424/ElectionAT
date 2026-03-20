@@ -99,6 +99,26 @@ router.get('/polygons/block-number/:blockNumber', getBoothPolygonsByBlock);
 
 /**
  * @swagger
+ * /api/booths/{id}/related-data:
+ *   get:
+ *     summary: Get all booth-related data from different tables
+ *     tags: [Booths]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: All booth-related data
+ *       404:
+ *         description: Booth not found
+ */
+router.get('/:id/related-data', getBoothRelatedData);
+
+/**
+ * @swagger
  * /api/booths/{id}:
  *   get:
  *     summary: Get single booth
@@ -120,26 +140,6 @@ router.get('/polygons/block-number/:blockNumber', getBoothPolygonsByBlock);
  *         description: Booth not found
  */
 router.get('/:id', getBooth);
-
-/**
- * @swagger
- * /api/booths/{id}/related-data:
- *   get:
- *     summary: Get all booth-related data from different tables
- *     tags: [Booths]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: All booth-related data
- *       404:
- *         description: Booth not found
- */
-router.get('/:id/related-data', getBoothRelatedData);
 
 /**
  * @swagger

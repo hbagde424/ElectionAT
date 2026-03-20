@@ -82,6 +82,7 @@ const samitiRoutes = require('./routes/samitiRoutes');
 const panchayatRoutes = require('./routes/panchayatRoutes');
 const villageRoutes = require('./routes/villageRoutes');
 const falliyaRoutes = require('./routes/falliyaRoutes');
+const polygonRoutes = require('./routes/polygonRoutes');
 //const indiaPolygonRoutes = require('./routes/indiaPolygonRoutes');
 //const voterTurnoutRoutes = require('./routes/voterTurnout');
 // const indiaPolygonRoutes from "./routes/indiaPolygonRoutes.js";
@@ -207,6 +208,7 @@ apiRouter.use('/blas', blaRoutes);
 apiRouter.use('/blos', bloRoutes);
 apiRouter.use('/csv-export', csvExportRoutes);
 apiRouter.use('/codings', codingRoutes);
+apiRouter.use('/polygons', polygonRoutes);
 apiRouter.use('/booth-polygons', boothPolygonRoutes);
 apiRouter.use('/winning-candidates', winningCandidateRoutes);
 apiRouter.use('/users', userRoutes);  // Add user routes
