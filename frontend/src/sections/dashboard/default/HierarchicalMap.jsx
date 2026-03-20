@@ -344,6 +344,7 @@ function HierarchicalMap({ onRegionClick }) {
         if (!s || typeof s !== 'string') return s;
         return s.charAt(0).toUpperCase() + s.slice(1);
     };
+    
     // Helper to add Authorization header when token exists
     const getAuthHeaders = () => {
         try {
@@ -351,6 +352,38 @@ function HierarchicalMap({ onRegionClick }) {
             return token ? { Authorization: `Bearer ${token}` } : {};
         } catch (err) {
             return {};
+        }
+    };
+
+    // ✅ CRITICAL FIX: Generate unique cache key using MongoDB _id
+    const generateCacheKey = (level, feature) => {
+        if (!feature || !feature.properties) return `${level}_unknown`;
+        
+        const props = feature.properties;
+        const mongoId = props._id || props.BoothId || props.PC_ID || props.uuid;
+        
+        // Normalize level name for consistent cache keys
+        let normalizedLevel = level;
+        if (level === 'parliamentary') {
+            normalizedLevel = 'parliament';
+        }
+        
+        if (mongoId) {
+            return `${normalizedLevel}_${mongoId}`;
+        }
+        
+        // Fallback to other identifiers
+        switch(level) {
+            case 'parliamentary':
+                return `parliament_${props.pcNo || props.parliament_no || props.id}`;
+            case 'assembly':
+                return `assembly_${props.AC_NO || props.acNo || props.id}`;
+            case 'booth':
+                return `booth_${props.BoothNo || props.booth_number || props.id}`;
+            case 'block':
+                return `block_${props.name || props.id}`;
+            default:
+                return `${normalizedLevel}_${props.id || props.name || 'unknown'}`;
         }
     };
 
@@ -557,28 +590,54 @@ function HierarchicalMap({ onRegionClick }) {
             const featureId = properties.id;
             let cacheKey;
             
+            // Normalize level name for consistent cache keys
+            let normalizedLevel = panelLevel;
             if (panelLevel === 'parliamentary') {
+                normalizedLevel = 'parliament';
+            }
+            
+            if (normalizedLevel === 'parliamentary' || normalizedLevel === 'parliament') {
+                // Use MongoDB _id if available, otherwise use parliament_no
+                const parliamentObjectId = properties._id || properties.mongoId;
                 const parliamentId = properties.pcNo || properties.parliamentId || properties.parliament_no || properties.id;
-                cacheKey = `${panelLevel}_${parliamentId}`;
-            } else if (panelLevel === 'assembly') {
+                // Try with MongoDB _id first, then fallback to parliament_no
+                cacheKey = parliamentObjectId ? `parliament_${String(parliamentObjectId)}` : `parliament_${parliamentId}`;
+            } else if (normalizedLevel === 'division') {
+                // Use MongoDB _id if available
+                const divisionObjectId = properties._id || properties.mongoId;
+                const divisionId = properties.id || properties.DIVISION_CODE || properties.name;
+                cacheKey = divisionObjectId ? `division_${String(divisionObjectId)}` : `division_${divisionId}`;
+            } else if (normalizedLevel === 'assembly') {
+                // Use MongoDB _id if available
+                const assemblyObjectId = properties._id || properties.mongoId;
                 const assemblyId = properties.AC_NO || properties.acNo || properties.assembly_no || properties.assemblyNo || properties.id;
-                cacheKey = `${panelLevel}_${assemblyId}`;
-            } else if (panelLevel === 'booth') {
+                cacheKey = assemblyObjectId ? `assembly_${String(assemblyObjectId)}` : `assembly_${assemblyId}`;
+            } else if (normalizedLevel === 'booth') {
+                // Use MongoDB _id if available
+                const boothObjectId = properties._id || properties.mongoId;
                 const boothId = properties.BoothNo || properties.boothNo || 
                               properties.booth_number || properties.boothNumber || 
                               properties.booth_no || properties.BoothNumber ||
-                              properties.id || properties.BoothId || properties._id;
-                cacheKey = `booth_${boothId}`;
-            } else if (panelLevel === 'block') {
+                              properties.id || properties.BoothId;
+                cacheKey = boothObjectId ? `booth_${String(boothObjectId)}` : `booth_${boothId}`;
+            } else if (normalizedLevel === 'block') {
+                // Use MongoDB _id if available
+                const blockObjectId = properties._id || properties.mongoId;
                 const blockId = properties.name || properties.Name || properties.id;
-                cacheKey = `${panelLevel}_${blockId ? blockId.toLowerCase() : featureId}`;
+                cacheKey = blockObjectId ? `block_${String(blockObjectId)}` : `block_${blockId ? blockId.toLowerCase() : featureId}`;
+            } else if (normalizedLevel === 'state') {
+                // Use MongoDB _id if available
+                const stateObjectId = properties._id || properties.mongoId;
+                const stateId = properties.id || properties.Name;
+                cacheKey = stateObjectId ? `state_${String(stateObjectId)}` : `state_${stateId}`;
             } else {
-                cacheKey = `${panelLevel}_${featureId}`;
+                cacheKey = `${normalizedLevel}_${featureId}`;
             }
 
+            console.log('🔍 Panel cache key lookup:', { panelLevel, normalizedLevel, cacheKey, availableKeys: Object.keys(hoverData).slice(0, 5) });
             const updatedData = hoverData[cacheKey];
             if (updatedData && Object.keys(updatedData).length > 0) {
-                console.log('📦 Panel data updating with cache key:', cacheKey, 'Data:', updatedData);
+                console.log('📦 Panel data updating with cache key:', cacheKey, 'Data keys:', Object.keys(updatedData));
                 setPanelData({
                     feature: panelData.feature,
                     level: panelLevel,
@@ -586,6 +645,8 @@ function HierarchicalMap({ onRegionClick }) {
                 });
                 // Stop loading when data arrives
                 setIsPanelLoading(false);
+            } else {
+                console.warn('⚠️ No data found for cache key:', cacheKey, 'Available keys:', Object.keys(hoverData).slice(0, 10));
             }
         }
     }, [hoverData, isPanelOpen, panelLevel, panelData.feature]);
@@ -677,28 +738,30 @@ function HierarchicalMap({ onRegionClick }) {
         // Simple one-step back navigation with better property handling
         switch (currentLevel) {
             case 'booth':
-                const blockAcNo = selectedFeature?.properties?.acNo ||
-                    selectedFeature?.properties?.AC_NO ||
-                    'AC001';
-                loadBlockData(blockAcNo);
+                const blockId = selectedFeature?.properties?._id ||
+                    selectedFeature?.properties?.block_id ||
+                    selectedFeature?.properties?.id;
+                if (blockId) {
+                    loadBlockData(blockId);
+                }
                 setCurrentLevel('block');
                 break;
             case 'block':
-                const assemblyPcNo = selectedFeature?.properties?.pcNo ||
-                    selectedFeature?.properties?.PC_NO ||
-                    selectedFeature?.properties?.acNo ||
-                    selectedFeature?.properties?.AC_NO ||
-                    'PC001';
-                loadAssemblyData(assemblyPcNo);
+                const assemblyId = selectedFeature?.properties?._id ||
+                    selectedFeature?.properties?.assembly_id ||
+                    selectedFeature?.properties?.id;
+                if (assemblyId) {
+                    loadAssemblyData(assemblyId);
+                }
                 setCurrentLevel('assembly');
                 break;
             case 'assembly':
-                const parliamentName = selectedFeature?.properties?.pcName ||
-                    selectedFeature?.properties?.PC_NAME ||
-                    selectedFeature?.properties?.divisionName ||
-                    selectedFeature?.properties?.DIVISION_NAME ||
-                    'Default';
-                loadParliamentaryData(parliamentName);
+                const parliamentId = selectedFeature?.properties?._id ||
+                    selectedFeature?.properties?.parliament_id ||
+                    selectedFeature?.properties?.id;
+                if (parliamentId) {
+                    loadParliamentaryData(parliamentId);
+                }
                 setCurrentLevel('parliamentary');
                 break;
             case 'parliamentary':
@@ -743,244 +806,181 @@ function HierarchicalMap({ onRegionClick }) {
 
     const loadStateData = async () => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/states/polygons`);
+            console.log('🔍 Loading state data from new polygon API');
+            
+            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/polygons/state`);
             if (!response.ok) {
                 throw new Error('Failed to fetch state data');
             }
+            
             const responseData = await response.json();
-            if (responseData.success && responseData.data && responseData.data.length > 0) {
-                let stateData = responseData.data[0];
+            console.log('📦 State API Response:', responseData);
+            
+            if (!responseData.features || responseData.features.length === 0) {
+                alert('No state data available');
+                return;
+            }
 
-                // Apply hierarchy filtering at state level
-                if (userHierarchy?.state) {
-                    const userStateId = extractId(userHierarchy.state);
-                    console.log('🔐 User has state restriction. State ID:', userStateId);
-                    
-                    // Filter features by state
-                    stateData = {
-                        ...stateData,
-                        features: stateData.features.filter(feature => {
-                            const featureStateId = extractId(feature.properties._id || feature.properties.id);
-                            const featureStateName = (feature.properties.Name || '').toLowerCase().replace(/\s+/g, '-');
-                            
-                            const matches = featureStateId === userStateId || featureStateName === userStateId;
-                            if (matches) {
-                                console.log(`✅ State matched: ${feature.properties.Name}`);
-                            }
-                            return matches;
-                        })
-                    };
-                    
-                    if (stateData.features.length === 0) {
-                        console.warn('⚠️ No states found matching user hierarchy');
-                        alert('No states available for your access level');
-                        return;
-                    }
-                }
+            let stateData = {
+                type: 'FeatureCollection',
+                features: responseData.features
+            };
 
-                // Validate MultiPolygon structure
-                const validatedStateData = {
+            // Apply hierarchy filtering at state level
+            if (userHierarchy?.state) {
+                const userStateId = extractId(userHierarchy.state);
+                console.log('🔐 User has state restriction. State ID:', userStateId);
+                
+                // Filter features by state
+                stateData = {
                     ...stateData,
-                    features: stateData.features.map(feature => {
-                        // Ensure geometry type is correct
-                        if (!feature.geometry || feature.geometry.type !== 'MultiPolygon') {
-                            return feature;
+                    features: stateData.features.filter(feature => {
+                        const featureStateId = extractId(feature.properties._id || feature.properties.id);
+                        const featureStateName = (feature.properties.name || '').toLowerCase().replace(/\s+/g, '-');
+                        
+                        const matches = featureStateId === userStateId || featureStateName === userStateId;
+                        if (matches) {
+                            console.log(`✅ State matched: ${feature.properties.name}`);
                         }
-
-                        // Validate coordinates structure
-                        if (!Array.isArray(feature.geometry.coordinates) ||
-                            !Array.isArray(feature.geometry.coordinates[0]) ||
-                            !Array.isArray(feature.geometry.coordinates[0][0])) {
-                            return feature;
-                        }
-
-                        return {
-                            ...feature,
-                            properties: {
-                                ...feature.properties,
-                                id: feature.properties.Name.toLowerCase().replace(/\s+/g, '-'),
-                                name: feature.properties.Name
-                            }
-                        };
+                        return matches;
                     })
                 };
-                showBoundaries(validatedStateData, 'state');
-                setCurrentLevel('state');
-                setSelectedFeature(null);
-                // Reset navigation history when going back to state level
-                setNavigationHistory([]);
-            } else {
-                alert('No state data available');
+                
+                if (stateData.features.length === 0) {
+                    console.warn('⚠️ No states found matching user hierarchy');
+                    alert('No states available for your access level');
+                    return;
+                }
             }
+
+            // Validate and transform features
+            const validatedStateData = {
+                ...stateData,
+                features: stateData.features.map(feature => ({
+                    ...feature,
+                    properties: {
+                        ...feature.properties,
+                        id: feature.properties._id,
+                        _id: feature.properties._id,
+                        name: feature.properties.name
+                    }
+                }))
+            };
+            
+            console.log(`✅ Showing ${validatedStateData.features.length} states on map`);
+            showBoundaries(validatedStateData, 'state');
+            setCurrentLevel('state');
+            setSelectedFeature(null);
+            setNavigationHistory([]);
         } catch (error) {
             console.error('❌ Error loading state data:', error);
+            alert('Error loading state data: ' + error.message);
         }
     };
 
     const loadDivisionData = async (stateId) => {
         try {
             console.log('🔍 Loading divisions for state:', stateId);
-            console.log('👤 User hierarchy:', userHierarchy);
             
-            // Fetch all divisions (like parliament page does)
-            const token = localStorage.getItem('serviceToken');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            // First get state ID if we have state name
+            let stateObjectId = stateId;
+            if (stateId && !stateId.match(/^[0-9a-f]{24}$/i)) {
+                // It's a state name, need to fetch state ID
+                const stateResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/states?search=${encodeURIComponent(stateId)}`);
+                if (stateResponse.ok) {
+                    const stateData = await stateResponse.json();
+                    if (stateData.success && stateData.data && stateData.data.length > 0) {
+                        stateObjectId = stateData.data[0]._id;
+                    }
+                }
+            }
             
-            const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions/polygons`, { headers });
+            // Fetch divisions using new polygon API
+            const apiUrl = stateObjectId 
+                ? `${import.meta.env.VITE_APP_API_URL}/polygons/division/${stateObjectId}`
+                : `${import.meta.env.VITE_APP_API_URL}/polygons/division`;
+            
+            console.log('🌐 API URL:', apiUrl);
+            
+            const response = await fetch(apiUrl);
             if (!response.ok) {
                 throw new Error('Failed to fetch division data');
             }
+            
             const responseData = await response.json();
+            console.log('📦 Division API Response:', responseData);
 
             if (!responseData.features || responseData.features.length === 0) {
-                console.error('❌ No division features found in response');
                 alert('No division data available');
                 return;
             }
 
-            console.log(`📦 Total divisions available: ${responseData.features.length}`);
-            
-            // Apply hierarchy filtering (like parliament page does)
             let featuresToUse = responseData.features;
             
+            // Apply hierarchy filtering
             if (userHierarchy?.division) {
-                // If user has division-level access, show only that division
                 const userDivisionId = extractId(userHierarchy.division);
                 console.log('🔐 User has division restriction. Division ID:', userDivisionId);
                 
-                featuresToUse = responseData.features.filter(f => {
-                    const divisionId = extractId(f.properties._id || f.properties.id);
-                    const matches = String(divisionId) === String(userDivisionId);
-                    
-                    if (matches) {
-                        console.log(`✅ Division matched: ${f.properties.DIVISION_NAME} (ID: ${divisionId})`);
-                    }
-                    return matches;
+                featuresToUse = featuresToUse.filter(f => {
+                    const divisionId = extractId(f.properties._id);
+                    return String(divisionId) === String(userDivisionId);
                 });
                 
                 console.log(`🔐 After division filtering: ${featuresToUse.length} divisions`);
-            } 
-            else if (userHierarchy?.state) {
-                // If user has state-level access, show all divisions in that state
-                const userStateId = extractId(userHierarchy.state);
-                console.log('🔐 User has state restriction. State ID:', userStateId);
-                
-                featuresToUse = responseData.features.filter(f => {
-                    const divisionStateId = extractId(f.properties.state_id);
-                    const matches = String(divisionStateId) === String(userStateId);
-                    
-                    if (matches) {
-                        console.log(`✅ State matched: ${f.properties.DIVISION_NAME} (State ID: ${divisionStateId})`);
-                    }
-                    return matches;
-                });
-                
-                console.log(`🔐 After state filtering: ${featuresToUse.length} divisions`);
-            }
-            else if (stateId) {
-                // If no hierarchy restriction, filter by state parameter
-                const stateIdLower = stateId.toLowerCase().replace(/\s+/g, '-');
-                const stateNameNormalized = stateId.toLowerCase();
-                
-                featuresToUse = responseData.features.filter(f => {
-                    const featureState = (f.properties.ST_NAME || '').toLowerCase();
-                    const featureStateSlug = featureState.replace(/\s+/g, '-');
-                    
-                    const matches = featureState === stateNameNormalized || 
-                                   featureStateSlug === stateIdLower ||
-                                   featureState.includes(stateNameNormalized) ||
-                                   stateNameNormalized.includes(featureState);
-                    
-                    if (matches) {
-                        console.log(`✅ Matched division: ${f.properties.DIVISION_NAME} with state: ${f.properties.ST_NAME}`);
-                    }
-                    return matches;
-                });
-                
-                console.log(`✅ Filtered ${featuresToUse.length} divisions for state: ${stateId}`);
             }
 
             if (featuresToUse.length === 0) {
-                console.warn('⚠️ No divisions found');
-                console.log('📋 Available states in data:', [...new Set(responseData.features.map(f => f.properties.ST_NAME))]);
                 alert('No divisions found for your access level');
                 return;
             }
 
-            // Group divisions by name (for aggregating multi-part divisions)
-            const divisionGroups = featuresToUse.reduce((groups, feature) => {
-                const divisionName = feature.properties.DIVISION_NAME || feature.properties.division_name || 'Unknown';
-                const divisionKey = divisionName.toUpperCase();
-
-                if (!groups[divisionKey]) {
-                    groups[divisionKey] = {
-                        type: 'Feature',
-                        properties: {
-                            id: divisionName.toLowerCase().replace(/\s+/g, '-'),
-                            name: divisionName,
-                            DIVISION_NAME: divisionName,
-                            DIVISION_CODE: feature.properties.DIVISION_CODE || feature.properties.division_code,
-                            ST_NAME: feature.properties.ST_NAME,
-                            _id: feature.properties._id,
-                            districts: new Set([feature.properties.District]),
-                            parliaments: new Set([feature.properties.Parliament]),
-                            vsCodes: new Set([feature.properties.VS_Code])
-                        },
-                        geometry: {
-                            type: 'MultiPolygon',
-                            coordinates: []
-                        }
-                    };
-                } else {
-                    if (feature.properties.District) groups[divisionKey].properties.districts.add(feature.properties.District);
-                    if (feature.properties.Parliament) groups[divisionKey].properties.parliaments.add(feature.properties.Parliament);
-                    if (feature.properties.VS_Code) groups[divisionKey].properties.vsCodes.add(feature.properties.VS_Code);
-                }
-
-                if (feature.geometry?.coordinates) {
-                    if (feature.geometry.type === 'MultiPolygon') {
-                        groups[divisionKey].geometry.coordinates.push(...feature.geometry.coordinates);
-                    } else if (feature.geometry.type === 'Polygon') {
-                        groups[divisionKey].geometry.coordinates.push([feature.geometry.coordinates]);
-                    }
-                }
-                return groups;
-            }, {});
-
             const transformedData = {
                 type: 'FeatureCollection',
-                features: Object.values(divisionGroups).map(division => ({
-                    ...division,
+                features: featuresToUse.map(feature => ({
+                    ...feature,
                     properties: {
-                        ...division.properties,
-                        districts: Array.from(division.properties.districts),
-                        parliaments: Array.from(division.properties.parliaments),
-                        vsCodes: Array.from(division.properties.vsCodes),
-                        parliamentarySeats: division.properties.parliaments.size
+                        ...feature.properties,
+                        id: feature.properties._id,
+                        _id: feature.properties._id,
+                        name: feature.properties.name,
+                        DIVISION_NAME: feature.properties.name
                     }
                 }))
             };
 
             console.log(`✅ Showing ${transformedData.features.length} divisions on map`);
             showBoundaries(transformedData, 'division');
+            setCurrentLevel('division');
         } catch (error) {
             console.error('❌ Error loading division data:', error);
             alert('Error loading division data: ' + error.message);
         }
     };
 
-    // Parliamentary data will be fetched from API
+    // Parliamentary data will be fetched from CRUD models via new polygon API
     const loadParliamentaryData = async (divisionName) => {
         try {
             console.log('🔍 Loading parliamentary data for division:', divisionName);
             
-            // Handle special case: "Indore" in division polygons but "INDORE" in parliament polygons
-            // Database has inconsistent casing - only "INDORE" is all caps, rest are proper case
-            const normalizedDivisionName = divisionName === 'Indore' ? 'INDORE' : divisionName;
+            // First, get the division ID from the division name
+            const divisionsResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?search=${encodeURIComponent(divisionName)}`);
+            if (!divisionsResponse.ok) {
+                throw new Error('Failed to fetch division');
+            }
             
-            console.log(`📍 Normalized division name: "${normalizedDivisionName}"`);
+            const divisionsData = await divisionsResponse.json();
+            if (!divisionsData.success || !divisionsData.data || divisionsData.data.length === 0) {
+                throw new Error(`Division not found: ${divisionName}`);
+            }
             
-            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/parliaments/polygons/name/${encodeURIComponent(normalizedDivisionName)}`;
+            const division = divisionsData.data[0];
+            const divisionId = division._id;
+            
+            console.log('📍 Division ID:', divisionId);
+            
+            // Now fetch parliaments for this division using the new polygon API
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/polygons/parliament/${divisionId}`;
             console.log('🌐 API URL:', apiUrl);
             
             const response = await fetch(apiUrl);
@@ -988,30 +988,32 @@ function HierarchicalMap({ onRegionClick }) {
                 console.error('❌ API Response not OK:', response.status, response.statusText);
                 throw new Error(`Failed to fetch parliamentary data: ${response.status} ${response.statusText}`);
             }
+            
             const responseData = await response.json();
             console.log('📦 API Response:', responseData);
 
-            if (responseData && responseData.length > 0 && responseData[0].features && responseData[0].features.length > 0) {
-                const parliamentData = responseData[0];
-                console.log(`✅ Found ${parliamentData.features.length} parliamentary constituencies`);
+            if (responseData.features && responseData.features.length > 0) {
+                console.log(`✅ Found ${responseData.features.length} parliamentary constituencies`);
                 
                 let transformedData = {
                     type: 'FeatureCollection',
-                    features: parliamentData.features.map(feature => {
-                        const parliamentId = feature.properties._id || feature.properties.PC_ID;
+                    features: responseData.features.map(feature => {
+                        const parliamentId = feature.properties._id;
                         return {
                             type: 'Feature',
                             properties: {
                                 _id: parliamentId,
                                 id: parliamentId,
                                 PC_ID: parliamentId,
-                                name: feature.properties.PC_NAME,
-                                displayName: `${feature.properties.PC_NO}-${feature.properties.PC_NAME}`,
-                                pcNo: feature.properties.PC_NO,
-                                stateCode: feature.properties.ST_CODE,
-                                stateName: feature.properties.ST_NAME,
+                                name: feature.properties.name,
+                                displayName: feature.properties.name,
+                                pcNo: feature.properties.parliament_no,
+                                parliament_no: feature.properties.parliament_no,
+                                stateCode: feature.properties.state_id,
+                                stateName: feature.properties.state_name,
                                 parliamentId: parliamentId,
-                                divisionName: divisionName
+                                divisionName: divisionName,
+                                divisionId: divisionId
                             },
                             geometry: feature.geometry
                         };
@@ -1024,7 +1026,7 @@ function HierarchicalMap({ onRegionClick }) {
                         transformedData.features.map(f => ({
                             _id: f.properties._id,
                             name: f.properties.name,
-                            parliament_no: f.properties.pcNo,
+                            parliament_no: f.properties.parliament_no,
                             division_id: { name: divisionName }
                         })),
                         userHierarchy
@@ -1038,9 +1040,8 @@ function HierarchicalMap({ onRegionClick }) {
                 showBoundaries(transformedData, 'parliamentary');
                 setCurrentLevel('parliamentary');
             } else {
-                console.error('❌ No parliamentary constituencies found for division:', normalizedDivisionName);
-                console.warn('💡 Database has these exact division names: Bhopal, Chambal, Gwalior, INDORE, Jabalpur, Narmadapuram, Rewa, Sagar, Shahdol, Ujjain');
-                alert(`No parliamentary constituencies found for division: ${divisionName}\n\nNote: Only "INDORE" is in all caps in database, rest are proper case.\n\nPlease check if parliament polygon data exists for this division.`);
+                console.error('❌ No parliamentary constituencies found for division:', divisionName);
+                alert(`No parliamentary constituencies found for division: ${divisionName}`);
             }
         } catch (error) {
             console.error('❌ Error loading parliamentary data:', error);
@@ -1183,83 +1184,87 @@ function HierarchicalMap({ onRegionClick }) {
         }
     };
 
-    const loadAssemblyData = async (vsCode) => {
-        try {
-            console.log('🔍 Loading assembly data for parliament code:', vsCode);
-            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/assemblies/polygons/parliament/${vsCode}`;
-            console.log('🌐 API URL:', apiUrl);
-            
-            const response = await fetch(apiUrl);
-            if (!response.ok) {
-                console.error('❌ API Response not OK:', response.status, response.statusText);
-                throw new Error(`Failed to fetch assembly data: ${response.status} ${response.statusText}`);
-            }
+    const loadAssemblyData = async (parliamentId) => {
+            try {
+                console.log('🔍 Loading assembly data for parliament ID:', parliamentId);
 
-            const assemblies = await response.json();
-            console.log('📦 API Response:', assemblies);
-            
-            if (assemblies && assemblies.data && assemblies.data[0] && assemblies.data[0].type === "FeatureCollection" && assemblies.data[0].features && assemblies.data[0].features.length > 0) {
-                console.log(`✅ Found ${assemblies.data[0].features.length} assembly constituencies`);
-                
-                let transformedData = {
-                    type: 'FeatureCollection',
-                    features: assemblies.data[0].features.map(feature => {
-                        const acNoValue = feature.properties.AC_NO;
-                        console.log(`🔄 Transforming assembly: ${feature.properties.AC_NAME}, AC_NO:`, acNoValue, typeof acNoValue);
-                        
-                        return {
-                            type: 'Feature',
-                            properties: {
-                                _id: feature.properties._id,
-                                id: feature.properties._id,
-                                name: feature.properties.AC_NAME,
-                                displayName: `${feature.properties.AC_NO}-${feature.properties.AC_NAME} `,
-                                acNo: feature.properties.AC_NO.toString(),
-                                pcName: feature.properties.PC_NAME,
-                                district: feature.properties.ST_NAME,
-                                division: feature.properties.DIVISION_NAME,
-                                category: 'GEN',
-                                lastElectionYear: '2023'
-                            },
-                            geometry: feature.geometry
-                        };
-                    })
-                };
+                // Use the new unified polygon API for assemblies
+                const apiUrl = `${import.meta.env.VITE_APP_API_URL}/polygons/assembly/${parliamentId}`;
+                console.log('🌐 API URL:', apiUrl);
 
-                // Apply hierarchy filtering
-                if (userHierarchy && transformedData.features.length > 0) {
-                    const filteredFeatures = filterAssembliesByHierarchy(
-                        transformedData.features.map(f => ({
-                            _id: f.properties._id,
-                            name: f.properties.name,
-                            AC_NO: f.properties.acNo,
-                            parliament_id: { name: f.properties.pcName }
-                        })),
-                        userHierarchy
-                    );
-                    
-                    const filteredIds = new Set(filteredFeatures.map(f => f._id));
-                    transformedData.features = transformedData.features.filter(f => filteredIds.has(f.properties._id));
-                    console.log(`🔒 After hierarchy filtering: ${transformedData.features.length} assemblies`);
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    console.error('❌ API Response not OK:', response.status, response.statusText);
+                    throw new Error(`Failed to fetch assembly data: ${response.status} ${response.statusText}`);
                 }
 
-                showBoundaries(transformedData, 'assembly');
-                setCurrentLevel('assembly');
-            } else {
-                console.warn('⚠️ No assembly constituencies found for parliament code:', vsCode);
-                alert(`No assembly constituencies found for parliament code: ${vsCode}\n\nPlease check if assembly polygon data exists in the database.`);
+                const responseData = await response.json();
+                console.log('📦 API Response:', responseData);
+
+                if (responseData.features && responseData.features.length > 0) {
+                    console.log(`✅ Found ${responseData.features.length} assembly constituencies`);
+
+                    let transformedData = {
+                        type: 'FeatureCollection',
+                        features: responseData.features.map(feature => {
+                            const assemblyId = feature.properties._id;
+                            return {
+                                type: 'Feature',
+                                properties: {
+                                    _id: assemblyId,
+                                    id: assemblyId,
+                                    name: feature.properties.name,
+                                    displayName: feature.properties.name,
+                                    acNo: feature.properties.AC_NO || '',
+                                    parliamentId: parliamentId,
+                                    parliament_id: parliamentId,
+                                    parliamentName: feature.properties.parliament_name,
+                                    divisionName: feature.properties.division_name,
+                                    stateName: feature.properties.state_name,
+                                    category: 'GEN',
+                                    lastElectionYear: '2023'
+                                },
+                                geometry: feature.geometry
+                            };
+                        })
+                    };
+
+                    // Apply hierarchy filtering
+                    if (userHierarchy && transformedData.features.length > 0) {
+                        const filteredFeatures = filterAssembliesByHierarchy(
+                            transformedData.features.map(f => ({
+                                _id: f.properties._id,
+                                name: f.properties.name,
+                                AC_NO: f.properties.acNo,
+                                parliament_id: { name: f.properties.parliamentName }
+                            })),
+                            userHierarchy
+                        );
+
+                        const filteredIds = new Set(filteredFeatures.map(f => f._id));
+                        transformedData.features = transformedData.features.filter(f => filteredIds.has(f.properties._id));
+                        console.log(`🔒 After hierarchy filtering: ${transformedData.features.length} assemblies`);
+                    }
+
+                    showBoundaries(transformedData, 'assembly');
+                    setCurrentLevel('assembly');
+                } else {
+                    console.warn('⚠️ No assembly constituencies found for parliament ID:', parliamentId);
+                    alert(`No assembly constituencies found for parliament ID: ${parliamentId}\n\nPlease check if assembly polygon data exists in the database.`);
+                }
+            } catch (error) {
+                console.error('❌ Error loading assembly data:', error);
+                alert(`Error loading assembly data: ${error.message}`);
             }
-        } catch (error) {
-            console.error('❌ Error loading assembly data:', error);
-            alert(`Error loading assembly data: ${error.message}`);
         }
-    };
 
     // Block data will be fetched from API
     const loadBlockData = async (assemblyId) => {
         try {
-            console.log('🔍 Loading block data for assembly AC_NO:', assemblyId);
-            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/blocks/polygons/assembly/${assemblyId}`;
+            console.log('🔍 Loading block data for assembly ID:', assemblyId);
+            
+            // Use the new unified polygon API for blocks
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/polygons/block/${assemblyId}`;
             console.log('🌐 API URL:', apiUrl);
             
             const response = await fetch(apiUrl);
@@ -1271,36 +1276,32 @@ function HierarchicalMap({ onRegionClick }) {
             }
             const responseData = await response.json();
             console.log('📦 Block API Response:', responseData);
-            console.log('📊 Features count:', responseData.data?.[0]?.features?.length || 0);
+            console.log('📊 Features count:', responseData.features?.length || 0);
             
-            if (responseData.success && responseData.data && responseData.data.length > 0) {
+            if (responseData.features && responseData.features.length > 0) {
                 console.log('✅ Block data found, transforming...');
                 const transformedData = {
                     type: 'FeatureCollection',
-                    features: responseData.data[0].features.map((feature, index) => {
-                        // Generate proper block name and ID
-                        const blockNumber = feature.properties.BlockNumber || (index + 1);
-                        const acName = feature.properties.AC_NAME || 'Unknown';
-                        const blockName = feature.properties.BlockName || `Block ${blockNumber} - ${acName}`;
-                        const blockId = feature.properties.uuid || 
-                                       `block-${feature.properties.AC_NO}-${blockNumber}`;
-                        
-                        console.log(`📦 Processing block: ${blockName}, ID: ${blockId}, BlockNumber: ${blockNumber}`);
+                    features: responseData.features.map((feature, index) => {
+                        const blockId = feature.properties._id;
                         
                         return {
                             type: 'Feature',
                             properties: {
-                                ...feature.properties,
+                                _id: blockId,
                                 id: blockId,
-                                name: blockName,
-                                blockCode: String(blockNumber),
-                                BlockNumber: blockNumber, // Keep original for navigation
-                                acName: acName,
-                                mainTown: feature.properties.DIST_NAME || feature.properties.ST_NAME,
+                                name: feature.properties.name,
+                                displayName: feature.properties.name,
+                                assemblyId: assemblyId,
+                                assembly_id: assemblyId,
+                                assemblyName: feature.properties.assembly_name,
+                                parliamentName: feature.properties.parliament_name,
+                                divisionName: feature.properties.division_name,
+                                stateName: feature.properties.state_name,
                                 population: null,
                                 totalVoters: null,
                                 totalBooths: 1,
-                                ruralBooths: feature.properties.BoothName ? 1 : 0,
+                                ruralBooths: 0,
                                 urbanBooths: 0
                             },
                             geometry: feature.geometry
@@ -1426,26 +1427,7 @@ function HierarchicalMap({ onRegionClick }) {
                 })();
             } else {
                 console.warn('⚠️ No block data found for assembly:', assemblyId);
-                console.log('Response data:', responseData);
-                
-                // Try to diagnose the issue
-                const diagnosisMsg = [];
-                diagnosisMsg.push(`Assembly AC_NO: ${assemblyId}`);
-                diagnosisMsg.push(`API URL: ${import.meta.env.VITE_APP_API_URL}/block-polygons/booth/${assemblyId}`);
-                diagnosisMsg.push(`\nResponse status: ${response.status}`);
-                diagnosisMsg.push(`Success: ${responseData.success}`);
-                diagnosisMsg.push(`Data count: ${responseData.data ? responseData.data.length : 0}`);
-                
-                if (responseData.data && responseData.data.length > 0) {
-                    diagnosisMsg.push(`Features in first doc: ${responseData.data[0].features ? responseData.data[0].features.length : 0}`);
-                }
-                
-                diagnosisMsg.push(`\n⚠️ Possible reasons:`);
-                diagnosisMsg.push(`1. No block polygon data exists for AC_NO ${assemblyId} in the database`);
-                diagnosisMsg.push(`2. API endpoint might be different in production`);
-                diagnosisMsg.push(`3. Check if you're connected to the correct backend (local vs production)`);
-                
-                alert(`No block data available for assembly constituency\n\n${diagnosisMsg.join('\n')}`);
+                alert(`No block data available for assembly ID: ${assemblyId}\n\nPlease check if block polygon data exists in the database.`);
             }
         } catch (error) {
             console.error('❌ Error loading block data:', error);
@@ -1453,10 +1435,12 @@ function HierarchicalMap({ onRegionClick }) {
         }
     };
 
-    const loadBoothData = async (BlockNumber, AC_NO = null) => {
+    const loadBoothData = async (blockId, AC_NO = null) => {
         try {
-            console.log('🔍 Loading booth data for BlockNumber:', BlockNumber, 'AC_NO:', AC_NO);
-            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/booths/polygons/block-number/${BlockNumber}`;
+            console.log('🔍 Loading booth data for block ID:', blockId, 'AC_NO:', AC_NO);
+            
+            // Use the new unified polygon API for booths
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/polygons/booth/${blockId}`;
             console.log('🌐 API URL:', apiUrl);
             
             const response = await fetch(apiUrl);
@@ -1471,23 +1455,13 @@ function HierarchicalMap({ onRegionClick }) {
             console.log('📊 Features count:', responseData.features?.length || 0);
             
             // Validate API response structure
-            if (!responseData.success || !responseData.features || !Array.isArray(responseData.features)) {
+            if (!responseData.features || !Array.isArray(responseData.features)) {
                 throw new Error('Invalid API response structure');
             }
 
-            // Filter by AC_NO if provided (since API returns all BlockNumber=1 across all assemblies)
             let filteredFeatures = responseData.features;
-            if (AC_NO !== null && AC_NO !== undefined) {
-                const originalCount = filteredFeatures.length;
-                filteredFeatures = filteredFeatures.filter(feature => {
-                    const featureAcNo = feature.properties?.AC_NO || feature.properties?.acNo;
-                    return featureAcNo == AC_NO;
-                });
-                console.log(`🔍 Filtered booths by AC_NO ${AC_NO}: ${originalCount} → ${filteredFeatures.length}`);
-            }
-
             if (filteredFeatures.length === 0) {
-                alert(`No booths found for BlockNumber: ${BlockNumber}${AC_NO ? `, AC_NO: ${AC_NO}` : ''}\n\nThis block may not have booth data in the database.`);
+                alert(`No booths found for block ID: ${blockId}${AC_NO ? `, AC_NO: ${AC_NO}` : ''}\n\nThis block may not have booth data in the database.`);
                 return;
             }
 
@@ -1495,35 +1469,30 @@ function HierarchicalMap({ onRegionClick }) {
             const transformedData = {
                 type: 'FeatureCollection',
                 features: filteredFeatures.map((feature, index) => {
-                    // Validate geometry
-                    if (!feature.geometry || !feature.geometry.coordinates) {
-
-                        return null;
-                    }
-
+                    const boothId = feature.properties._id;
+                    
                     return {
                         type: 'Feature',
                         properties: {
-                            id: feature.properties?.BoothId ||
-                                feature.properties?.id ||
-                                `booth-${BlockNumber}-${index}`,
-                            name:
-                                (feature.properties?.BoothName
-                                    ? `${feature.properties.BoothName} - ${feature.properties.BoothNo || ''}`
-                                    : feature.properties?.name
-                                        ? `${feature.properties.name} (Booth No: ${feature.properties.BoothNo || ''})`
-                                        : `Booth ${feature.properties?.BoothNo || index}`),
-                            boothName: feature.properties?.BoothName || feature.properties?.name || '',
-                            boothNo: feature.properties?.BoothNo || feature.properties?.boothNo || '',
-                            blockName: feature.properties?.BlockName || feature.properties?.blockName || '',
-                            blockNumber: feature.properties?.BlockNumber || BlockNumber,
-                            location: feature.properties?.Location || feature.properties?.location || '',
-                            totalVoters: parseInt(feature.properties?.TotalVoters || feature.properties?.totalVoters || 0),
-                            maleFemaleRatio: feature.properties?.Gender_Ratio || feature.properties?.maleFemaleRatio || '',
-                            boothArea: feature.properties?.Area_Type || feature.properties?.boothArea || '',
-                            lastTurnout: feature.properties?.Last_Turnout || feature.properties?.lastTurnout || '',
-                            facilities: Array.isArray(feature.properties?.Facilities) ?
-                                feature.properties.Facilities : []
+                            booth_id: boothId,  // Store MongoDB _id as booth_id for consistency with BoothMap
+                            _id: boothId,
+                            id: boothId,
+                            name: feature.properties.name,
+                            displayName: feature.properties.name,
+                            boothNo: feature.properties.booth_number || '',
+                            blockId: blockId,
+                            block_id: blockId,
+                            blockName: feature.properties.block_name,
+                            assemblyName: feature.properties.assembly_name,
+                            parliamentName: feature.properties.parliament_name,
+                            divisionName: feature.properties.division_name,
+                            stateName: feature.properties.state_name,
+                            location: feature.properties.location || '',
+                            totalVoters: parseInt(feature.properties.total_voters || 0),
+                            maleFemaleRatio: feature.properties.gender_ratio || '',
+                            boothArea: feature.properties.area_type || '',
+                            lastTurnout: feature.properties.last_turnout || '',
+                            facilities: Array.isArray(feature.properties.facilities) ? feature.properties.facilities : []
                         },
                         geometry: feature.geometry
                     };
@@ -1537,7 +1506,7 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             });
 
-            console.log(`✅ Successfully loaded ${transformedData.features.length} booths for BlockNumber: ${BlockNumber}${AC_NO ? `, AC_NO: ${AC_NO}` : ''}`);
+            console.log(`✅ Successfully loaded ${transformedData.features.length} booths for block ID: ${blockId}${AC_NO ? `, AC_NO: ${AC_NO}` : ''}`);
             
             // Show only the selected block's booths
             showBoundaries(transformedData, 'booth');
@@ -1547,7 +1516,7 @@ function HierarchicalMap({ onRegionClick }) {
             try {
                 transformedData.features.forEach(f => {
                     const p = f.properties;
-                    const boothNo = p.BoothNo || p.boothNo || p.booth_number || p.BoothNumber || p.id || p.BoothId;
+                    const boothNo = p.boothNo || p.booth_number || p.id || p._id;
                     if (boothNo !== undefined && boothNo !== null) {
                         boothLookupRef.current[String(boothNo)] = p;
                     }
@@ -1634,14 +1603,7 @@ function HierarchicalMap({ onRegionClick }) {
 
         } catch (error) {
             console.error('❌ Error loading booth data:', error);
-            alert(`Failed to load booth data for BlockNumber: ${BlockNumber}${AC_NO ? `, AC_NO: ${AC_NO}` : ''}\n\nError: ${error.message}\n\nPlease check:\n1. Booth polygon data exists in database\n2. Backend API is running\n3. Network connection`);
-            // Fallback: Show the block boundaries again
-            if (selectedFeature && selectedFeature.properties) {
-                const fallbackAcNo = selectedFeature.properties.AC_NO || selectedFeature.properties.acNo;
-                if (fallbackAcNo) {
-                    loadBlockData(fallbackAcNo);
-                }
-            }
+            alert(`Failed to load booth data for block ID: ${blockId}${AC_NO ? `, AC_NO: ${AC_NO}` : ''}\n\nError: ${error.message}`);
         }
     };
 
@@ -1759,11 +1721,13 @@ function HierarchicalMap({ onRegionClick }) {
                         let cacheKey;
                         if (level === 'parliamentary') {
                             const parliamentId = feature.properties.pcNo || feature.properties.parliamentId || feature.properties.parliament_no || feature.properties.id;
-                            cacheKey = `${level}_${parliamentId}`;
+                            const parliamentObjectId = feature.properties._id || feature.properties.PC_ID;
+                            cacheKey = parliamentObjectId ? `parliament_${parliamentObjectId}` : `parliament_${parliamentId}`;
                         } else if (level === 'assembly') {
                             // For assembly, use AC_NO (Assembly Constituency Number) which should match database
                             const assemblyId = feature.properties.AC_NO || feature.properties.acNo || feature.properties.assembly_no || feature.properties.assemblyNo || feature.properties.id;
-                            cacheKey = `${level}_${assemblyId}`;
+                            const assemblyObjectId = feature.properties._id;
+                            cacheKey = assemblyObjectId ? `assembly_${assemblyObjectId}` : `assembly_${assemblyId}`;
                         } else {
                             cacheKey = `${level}_${featureId}`;
                         }
@@ -1808,19 +1772,13 @@ function HierarchicalMap({ onRegionClick }) {
                                 fetchBlockGenderData(blockId);
                             }
                         } else if (level === 'booth') {
-                            const boothId = feature.properties.BoothNo || feature.properties.boothNo || 
-                                          feature.properties.booth_number || feature.properties.boothNumber || 
-                                          feature.properties.id || feature.properties._id;
+                            // Use booth_id from properties (MongoDB ObjectId)
+                            const boothId = feature.properties.booth_id || feature.properties._id;
                             const boothCacheKey = `booth_${boothId}`;
                             
+                            // Only fetch if we don't have data yet
                             if (boothId && !hoverData[boothCacheKey]?.boothData) {
                                 fetchBoothDataDetailed(boothId);
-                            }
-                            
-                            // Also fetch booth gender data specifically using existing method
-                            if (boothId && !hoverData[boothCacheKey]?.genderData) {
-
-                                fetchBoothGenderData(boothId);
                             }
                         }
 
@@ -2065,477 +2023,18 @@ function HierarchicalMap({ onRegionClick }) {
                     winningData
                 }
             }));
-        } catch (error) {
-
-        }
-    };
-
-    // Function to fetch comprehensive division data
-    const fetchDivisionData = async (divisionId) => {
-        try {
-
             
-            // Try to find division by ID or name
-            let divisionResponse;
-            if (divisionId.length === 24) { // ObjectId format
-                divisionResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions/${divisionId}`);
-            } else {
-                // Search by name
-                divisionResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?search=${encodeURIComponent(divisionId)}`);
-            }
-            
-            let divisionData = {};
-            if (divisionResponse.ok) {
-                const result = await divisionResponse.json();
-                if (result.success) {
-                    divisionData = Array.isArray(result.data) ? result.data[0] : result.data;
-
-                }
-            }
-
-            // Fetch parliaments in this division
-            const divisionObjectId = divisionData._id || divisionId;
-            const parliamentsResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments/division/${divisionObjectId}`);
-            let parliamentsData = [];
-            if (parliamentsResponse.ok) {
-                const result = await parliamentsResponse.json();
-                if (result.success) {
-                    parliamentsData = result.data || [];
-
-                }
-            }
-
-            setHoverData(prev => ({
-                ...prev,
-                [`division_${divisionId}`]: {
-                    ...prev[`division_${divisionId}`],
-                    divisionData,
-                    parliamentsData
-                }
-            }));
-        } catch (error) {
-
-        }
-    };
-
-    // Function to fetch comprehensive parliament data
-    const fetchParliamentData = async (parliamentId, parliamentName = null) => {
-        let parliamentData = {}; // Initialize at function level
-        try {
-            console.log('🔍 fetchParliamentData called with:', { parliamentId, parliamentName });
-            
-            // Fetch parliament basic info
-            let parliamentResponse;
-            if (parliamentId.length === 24) { // ObjectId format
-                parliamentResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments/${parliamentId}`);
-            } else {
-                // Search by parliament number
-                parliamentResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?search=${encodeURIComponent(parliamentId)}`);
-            }
-            
-            if (parliamentResponse.ok) {
-                const result = await parliamentResponse.json();
-                if (result.success) {
-                    // If API returns array, try to find exact match by parliament number and name
-                    if (Array.isArray(result.data)) {
-                        const needle = String(parliamentId).trim();
-                        
-                        // First try exact match by PC number and name (if name provided)
-                        let exact = null;
-                        if (parliamentName) {
-                            exact = result.data.find(p => {
-                                if (!p) return false;
-                                const pcNo = String(p.parliament_no || p.PC_NO || p.pc_no || '').trim();
-                                const pcName = String(p.name || p.PC_NAME || p.pc_name || '').trim().toLowerCase();
-                                const searchName = String(parliamentName).trim().toLowerCase();
-                                return pcNo === needle && pcName === searchName;
-                            });
-                        }
-                        
-                        // If not found by name, try exact match by PC number only
-                        if (!exact) {
-                            exact = result.data.find(p => {
-                                if (!p) return false;
-                                const pcNo = String(p.parliament_no || p.PC_NO || p.pc_no || '').trim();
-                                return pcNo === needle;
-                            });
-                        }
-                        
-                        if (exact) {
-                            parliamentData = exact;
-                            console.log('✅ Found exact parliament match:', parliamentData.name || parliamentData.PC_NAME);
-                        } else if (result.data.length === 1) {
-                            parliamentData = result.data[0];
-                            console.log('⚠️ Using single result:', parliamentData.name || parliamentData.PC_NAME);
-                        } else {
-                            console.warn('⚠️ Multiple results found, no exact match. Using first:', result.data[0]);
-                            parliamentData = result.data[0];
-                        }
-                    } else {
-                        parliamentData = result.data;
-                    }
-
-                }
-            }
-
-            // Fetch gender stats for parliament
-            const parliamentObjectId = parliamentData?._id;
-            
-            // If we couldn't fetch parliament data, skip the rest
-            if (!parliamentObjectId) {
-                console.warn('⚠️ Could not fetch parliament data for ID:', parliamentId);
-                return;
-            }
-            
-            const headers = getAuthHeaders();
-            
-            // Fetch all data in parallel instead of sequential
-            const [genderResponse, winningResponse, assembliesResponse, boothsResponse] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/genders?parliament=${parliamentObjectId}&limit=1000`, { headers }),
-                (async () => {
-                    const token = localStorage.getItem('serviceToken');
-                    if (token) {
-                        return fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?parliament=${parliamentObjectId}&limit=100`, { headers: { Authorization: `Bearer ${token}` } });
-                    }
-                    return null;
-                })(),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/parliament/${parliamentObjectId}`),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths?parliament=${parliamentObjectId}&limit=1`, { headers })
-            ]);
-            
-            let genderData = {};
-            if (genderResponse && genderResponse.ok) {
-                const result = await genderResponse.json();
-                if (result.success && result.data) {
-                    // Aggregate the gender data
-                    const totalMale = result.data.reduce((sum, item) => sum + (item.male || 0), 0);
-                    const totalFemale = result.data.reduce((sum, item) => sum + (item.female || 0), 0);
-                    const totalOthers = result.data.reduce((sum, item) => sum + (item.others || 0), 0);
-                    genderData = {
-                        male: totalMale,
-                        female: totalFemale,
-                        others: totalOthers,
-                        total: totalMale + totalFemale + totalOthers
-                    };
-                }
-            }
-
-            // Fetch winning candidates data
-            let winningData = {};
-            try {
-                if (winningResponse) {
-                    if (winningResponse.ok) {
-                        const result = await winningResponse.json();
-                        if (result.success && result.data) {
-                            // Process to get winning parties by year and current MP
-                            const partyByYear = {};
-                            let currentMP = '';
-                            result.data.forEach(candidate => {
-                                if (candidate.year_id?.year && candidate.party_id?.name) {
-                                    partyByYear[candidate.year_id.year] = candidate.party_id.name;
-                                    if (candidate.year_id.year === '2024' || candidate.year_id.year === '2019') {
-                                        currentMP = candidate.candidate_id?.name || '';
-                                    }
-                                }
-                            });
-                            winningData = {
-                                winner_2024: partyByYear['2024'] || partyByYear['2019'] || 'BJP',
-                                winner_2019: partyByYear['2019'] || 'BJP',
-                                winner_2014: partyByYear['2014'] || 'BJP',
-                                current_mp: currentMP
-                            };
-                        }
-                    }
-                } else {
-                    winningData = { winner_2024: 'N/A', winner_2019: 'N/A', winner_2014: 'N/A', current_mp: 'N/A' };
-                }
-            } catch (e) {
-                console.warn('Failed to fetch winning candidates for parliament:', e);
-            }
-
-            // Fetch assemblies in this parliament
-            let assembliesData = [];
-            if (assembliesResponse && assembliesResponse.ok) {
-                const result = await assembliesResponse.json();
-                if (result.success) {
-                    assembliesData = result.data || [];
-                }
-            }
-
-            // Fetch total booths count (already fetched in parallel above)
-            let totalBooths = 0;
-            if (boothsResponse && boothsResponse.ok) {
-                const result = await boothsResponse.json();
-                if (result.success) {
-                    totalBooths = result.total || 0;
-                }
-            }
-
-            // Store data under multiple cache keys for flexibility
-            const keysToSet = new Set();
-            keysToSet.add(`parliamentary_${parliamentId}`);
-            
-            // Also add cache key using parliament_no if available
-            if (parliamentData && parliamentData.parliament_no) {
-                keysToSet.add(`parliamentary_${parliamentData.parliament_no}`);
-            }
-            
-            // Also add cache key using _id if available
-            if (parliamentData && parliamentData._id) {
-                keysToSet.add(`parliamentary_${parliamentData._id}`);
-            }
-            
-            setHoverData(prev => {
-                const next = { ...prev };
-                keysToSet.forEach(key => {
-                    next[key] = {
-                        ...next[key],
-                        parliamentData,
-                        genderData,
-                        winningData,
-                        assembliesData,
-                        totalBooths
-                    };
-                });
-                return next;
-            });
-        } catch (error) {
-            console.error('❌ Error fetching parliament data:', error);
-            // Set empty data to prevent infinite loading
-            const keysToSet = new Set();
-            keysToSet.add(`parliamentary_${parliamentId}`);
-            if (parliamentData && parliamentData.parliament_no) {
-                keysToSet.add(`parliamentary_${parliamentData.parliament_no}`);
-            }
-            if (parliamentData && parliamentData._id) {
-                keysToSet.add(`parliamentary_${parliamentData._id}`);
-            }
-            
-            setHoverData(prev => {
-                const next = { ...prev };
-                keysToSet.forEach(key => {
-                    next[key] = {
-                        parliamentData: {},
-                        genderData: {},
-                        winningData: {},
-                        assembliesData: [],
-                        totalBooths: 0,
-                        error: true
-                    };
-                });
-                return next;
-            });
-        }
-    };
-
-    // Function to fetch comprehensive assembly data
-    const fetchAssemblyDataDetailed = async (assemblyId) => {
-        try {
-
-            
-            // Fetch assembly basic info
-            let assemblyResponse;
-            if (assemblyId.length === 24) { // ObjectId format
-
-                assemblyResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/${assemblyId}`);
-            } else {
-                // Search by AC_NO
-
-                assemblyResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?search=${encodeURIComponent(assemblyId)}`);
-            }
-            
-            let assemblyData = {};
-            if (assemblyResponse.ok) {
-                const result = await assemblyResponse.json();
-                if (result.success) {
-                    // If API returns array, try to find exact match by AC_NO or _id first
-                    if (Array.isArray(result.data)) {
-                        const needle = String(assemblyId).trim();
-                        const exact = result.data.find(a => {
-                            if (!a) return false;
-                            const ac = a.AC_NO || a.acNo || a.AC || a.ac_no || a.constituency_no || a.number;
-                            if (ac && String(ac).trim() === needle) return true;
-                            if (a._id && String(a._id) === needle) return true;
-                            return false;
-                        });
-
-                        if (exact) {
-                            assemblyData = exact;
-
-                        } else if (result.data.length === 1) {
-                            assemblyData = result.data[0];
-
-                        } else {
-                            // Unexpected: multiple results and none match exactly
-                            // We'll try client-side matching later, so leave assemblyData empty for now
-                        }
-                    } else {
-                        assemblyData = result.data;
-                    }
-                } else {
-                    // Assembly API returned no success
-                }
-            } else {
-                // Assembly API call failed
-            }
-
-            // Fallback: if API search didn't return usable assemblyData, fetch a larger set and try client-side matching
-            if (!assemblyData || Object.keys(assemblyData).length === 0) {
-                try {
-
-                    const allUrl = `${import.meta.env.VITE_APP_API_URL}/assemblies?limit=10000`;
-                    const allResp = await fetch(allUrl);
-                    if (allResp.ok) {
-                        const allResult = await allResp.json();
-                        const candidates = Array.isArray(allResult.data) ? allResult.data : [];
-                        // Normalize search values
-                        const needleStr = String(assemblyId).trim().toLowerCase();
-                        const needleNum = Number(assemblyId);
-
-                        const found = candidates.find(a => {
-                            if (!a) return false;
-                            const ac = a.AC_NO || a.acNo || a.AC || a.ac_no || a.ac_no_str;
-                            if (ac && String(ac).trim().toLowerCase() === needleStr) return true;
-                            if (!isNaN(needleNum) && ac && Number(ac) === needleNum) return true;
-                            // try matching by _id
-                            if (a._id && String(a._id) === needleStr) return true;
-                            // try matching by name containing the number or name equal
-                            if (a.name && a.name.toLowerCase().includes(needleStr)) return true;
-                            return false;
-                        });
-
-                        if (found) {
-                            assemblyData = found;
-
-                        } else {
-                        }
-                    } else {
-
-                    }
-                } catch (err) {
-
-                }
-            }
-
-            // Fetch gender stats for assembly
-            const assemblyObjectId = assemblyData._id;
-            
-            // If we couldn't fetch assembly data, skip the rest
-            if (!assemblyObjectId) {
-                console.warn('⚠️ Could not fetch assembly data for ID:', assemblyId);
-                return;
-            }
-            
-            const headers = getAuthHeaders();
-            
-            // Fetch all data in parallel instead of sequential
-            const [genderResponse, winningResponse, boothsResponse] = await Promise.all([
-                fetch(`${import.meta.env.VITE_APP_API_URL}/genders?assembly=${assemblyObjectId}&limit=1000`, { headers }),
-                (async () => {
-                    const token = localStorage.getItem('serviceToken');
-                    if (token) {
-                        return fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?assembly=${assemblyObjectId}&limit=100`, { headers: { Authorization: `Bearer ${token}` } });
-                    }
-                    return null;
-                })(),
-                fetch(`${import.meta.env.VITE_APP_API_URL}/booths?assembly=${assemblyObjectId}&limit=1`, { headers })
-            ]);
-            
-            let genderData = {};
-            if (genderResponse && genderResponse.ok) {
-                const result = await genderResponse.json();
-                if (result.success && result.data) {
-                    // Aggregate the gender data
-                    const totalMale = result.data.reduce((sum, item) => sum + (item.male || 0), 0);
-                    const totalFemale = result.data.reduce((sum, item) => sum + (item.female || 0), 0);
-                    const totalOthers = result.data.reduce((sum, item) => sum + (item.others || 0), 0);
-                    genderData = {
-                        male: totalMale,
-                        female: totalFemale,
-                        others: totalOthers,
-                        total: totalMale + totalFemale + totalOthers
-                    };
-                }
-            }
-
-            // Fetch winning candidates data (MLA info)
-            let winningData = {};
-            try {
-                if (winningResponse) {
-                    if (winningResponse.ok) {
-                        const result = await winningResponse.json();
-                        if (result.success && result.data) {
-                            // Get current MLA (latest winner)
-                            let currentMLA = '';
-                            if (result.data.length > 0) {
-                                const latestCandidate = result.data[0]; // Assuming sorted by year desc
-                                currentMLA = latestCandidate.candidate_id?.name || '';
-                            }
-                            winningData = {
-                                current_mla: currentMLA
-                            };
-                        }
-                    }
-                } else {
-                    winningData = { current_mla: 'N/A' };
-                }
-            } catch (e) {
-                console.warn('Failed to fetch winning candidates for assembly:', e);
-            }
-
-            // Fetch total booths count for assembly
-            let totalBooths = 0;
-            if (boothsResponse && boothsResponse.ok) {
-                const result = await boothsResponse.json();
-                if (result.success) {
-                    totalBooths = result.total || 0;
-                }
-            }
-
-            // Ensure hover cache is writable under multiple useful keys so lookups succeed
-            // regardless of whether the caller used AC_NO, objectId or some other polygon field.
-            try {
-                const keysToSet = new Set();
-                // Original requested key (could be AC_NO or an ObjectId string)
-                keysToSet.add(`assembly_${assemblyId}`);
-
-                // If assemblyData has an ObjectId, include that key too
-                if (assemblyData && assemblyData._id) {
-                    keysToSet.add(`assembly_${assemblyData._id}`);
-                }
-
-                // Try to discover an AC/number field in the returned assembly record
-                const acCandidate = assemblyData && (
-                    assemblyData.AC_NO || assemblyData.acNo || assemblyData.AC || assemblyData.ac_no || assemblyData.ac_no_str || assemblyData.constituency_no || assemblyData.number || assemblyData.no
-                );
-                if (acCandidate) {
-                    keysToSet.add(`assembly_${String(acCandidate)}`);
-                }
-
-                setHoverData(prev => {
-                    const next = { ...prev };
-                    keysToSet.forEach(k => {
-                        next[k] = {
-                            ...next[k],
-                            assemblyData,
-                            genderData,
-                            winningData,
-                            totalBooths
-                        };
-                    });
-                    return next;
-                });
-            } catch (err) {
-
-                // fallback single-key write
-                setHoverData(prev => ({
+            // Update panel feature with MongoDB _id for cache key lookup
+            if (isPanelOpen && panelLevel === 'state' && stateData?._id) {
+                setPanelData(prev => ({
                     ...prev,
-                    [`assembly_${assemblyId}`]: {
-                        ...prev[`assembly_${assemblyId}`],
-                        assemblyData,
-                        genderData,
-                        winningData,
-                        totalBooths
+                    feature: {
+                        ...prev.feature,
+                        properties: {
+                            ...prev.feature.properties,
+                            _id: stateData._id,
+                            mongoId: stateData._id
+                        }
                     }
                 }));
             }
@@ -2544,17 +2043,351 @@ function HierarchicalMap({ onRegionClick }) {
         }
     };
 
+    // Function to fetch comprehensive division data
+    const fetchDivisionData = async (divisionId) => {
+        try {
+            console.log('🔍 fetchDivisionData called with:', divisionId);
+            
+            // Try to find division by ID or name
+            let divisionResponse;
+            if (divisionId && divisionId.length === 24) {
+                divisionResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions/${divisionId}`);
+            } else {
+                divisionResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?search=${encodeURIComponent(divisionId)}`);
+            }
+            
+            let divisionData = {};
+            if (divisionResponse.ok) {
+                const result = await divisionResponse.json();
+                if (result.success) {
+                    divisionData = Array.isArray(result.data) ? result.data[0] : result.data;
+                }
+            }
+
+            const divisionObjectId = divisionData._id || divisionId;
+            const headers = getAuthHeaders();
+            
+            // Fetch comprehensive related data using /related-data endpoint
+            const relatedDataResponse = await fetch(
+                `${import.meta.env.VITE_APP_API_URL}/divisions/${divisionObjectId}/related-data`,
+                { headers }
+            );
+            
+            let relatedData = {};
+            if (relatedDataResponse.ok) {
+                const result = await relatedDataResponse.json();
+                if (result.success && result.data) {
+                    relatedData = result.data;
+                    console.log('✅ Division related data fetched');
+                }
+            }
+
+            // Calculate aggregates
+            const genderData = relatedData.genders?.data || [];
+            const totalMale = genderData.reduce((sum, g) => sum + (g.Male_Count || g.male || 0), 0);
+            const totalFemale = genderData.reduce((sum, g) => sum + (g.Female_Count || g.female || 0), 0);
+            const totalOthers = genderData.reduce((sum, g) => sum + (g.others_Count || g.others || 0), 0);
+
+            // ✅ CRITICAL FIX: Use unique cache key and clear old data
+            const cacheKey = `division_${divisionObjectId}`;
+            
+            // Update panel feature with MongoDB _id for cache key lookup
+            if (isPanelOpen && panelLevel === 'division') {
+                setPanelData(prev => ({
+                    ...prev,
+                    feature: {
+                        ...prev.feature,
+                        properties: {
+                            ...prev.feature.properties,
+                            _id: divisionObjectId,
+                            mongoId: divisionObjectId
+                        }
+                    }
+                }));
+            }
+            
+            setHoverData(prev => ({
+                ...prev,
+                [cacheKey]: {
+                    divisionData,
+                    parliamentsData: relatedData.parliaments?.data || [],
+                    assembliesData: relatedData.assemblies?.data || [],
+                    boothsData: relatedData.booths?.data || [],
+                    casteLists: relatedData.casteLists?.data || [],
+                    winningCandidates: relatedData.winningCandidates?.data || [],
+                    genderData: {
+                        male: totalMale,
+                        female: totalFemale,
+                        others: totalOthers,
+                        total: totalMale + totalFemale + totalOthers
+                    },
+                    totals: {
+                        parliaments: relatedData.parliaments?.count || 0,
+                        assemblies: relatedData.assemblies?.count || 0,
+                        booths: relatedData.booths?.count || 0
+                    },
+                    relatedData
+                }
+            }));
+        } catch (error) {
+            console.error('❌ Error fetching division data:', error);
+        }
+    };
+
+    // Function to fetch comprehensive parliament data
+    const fetchParliamentData = async (parliamentId, parliamentName = null) => {
+        try {
+            console.log('🔍 fetchParliamentData called with:', { parliamentId, parliamentName });
+            
+            // Fetch parliament basic info
+            let parliamentResponse;
+            if (parliamentId && parliamentId.length === 24) {
+                parliamentResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments/${parliamentId}`);
+            } else {
+                parliamentResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?search=${encodeURIComponent(parliamentId)}`);
+            }
+            
+            let parliamentData = {};
+            if (parliamentResponse.ok) {
+                const result = await parliamentResponse.json();
+                if (result.success) {
+                    if (Array.isArray(result.data)) {
+                        parliamentData = result.data[0] || {};
+                    } else {
+                        parliamentData = result.data || {};
+                    }
+                }
+            }
+
+            const parliamentObjectId = parliamentData?._id;
+            if (!parliamentObjectId) {
+                console.warn('⚠️ Could not fetch parliament data for ID:', parliamentId);
+                return;
+            }
+            
+            const headers = getAuthHeaders();
+            
+            // Fetch comprehensive related data using /related-data endpoint
+            const relatedDataResponse = await fetch(
+                `${import.meta.env.VITE_APP_API_URL}/parliaments/${parliamentObjectId}/related-data`,
+                { headers }
+            );
+            
+            let relatedData = {};
+            if (relatedDataResponse.ok) {
+                const result = await relatedDataResponse.json();
+                if (result.success && result.data) {
+                    relatedData = result.data;
+                    console.log('✅ Parliament related data fetched:', {
+                        hasGenders: !!relatedData.genders,
+                        genderCount: relatedData.genders?.count || 0,
+                        genderDataLength: relatedData.genders?.data?.length || 0,
+                        hasAssemblies: !!relatedData.assemblies,
+                        assemblyCount: relatedData.assemblies?.count || 0
+                    });
+                }
+            } else {
+                console.error('❌ Failed to fetch related data:', relatedDataResponse.status, relatedDataResponse.statusText);
+            }
+
+            // Calculate aggregates from winning candidates (electors and votes)
+            const winningCandidatesData = relatedData.winningCandidates?.data || [];
+            console.log('📊 Winning candidates data for aggregation:', { count: winningCandidatesData.length, data: winningCandidatesData.slice(0, 2) });
+            
+            // Use electors from winning candidates as population
+            const totalElectors = winningCandidatesData.reduce((sum, c) => sum + (c.electors || 0), 0);
+            const totalMaleElectors = winningCandidatesData.reduce((sum, c) => sum + (c.male_electors || 0), 0);
+            const totalFemaleElectors = winningCandidatesData.reduce((sum, c) => sum + (c.female_electors || 0), 0);
+            
+            // Fallback to gender data if no winning candidate data
+            let totalMale = totalMaleElectors;
+            let totalFemale = totalFemaleElectors;
+            let totalOthers = 0;
+            
+            if (totalMale === 0 && totalFemale === 0) {
+                const genderData = relatedData.genders?.data || [];
+                totalMale = genderData.reduce((sum, g) => sum + (g.Male_Count || g.male || 0), 0);
+                totalFemale = genderData.reduce((sum, g) => sum + (g.Female_Count || g.female || 0), 0);
+                totalOthers = genderData.reduce((sum, g) => sum + (g.others_Count || g.others || 0), 0);
+            }
+            
+            console.log('📊 Aggregated population totals:', { totalMale, totalFemale, totalOthers, totalElectors });
+
+            // ✅ CRITICAL FIX: Use unique cache key based on MongoDB _id
+            const cacheKey = `parliament_${parliamentObjectId}`;
+            
+            // Update panel feature with MongoDB _id for cache key lookup
+            if (isPanelOpen && panelLevel === 'parliamentary') {
+                setPanelData(prev => ({
+                    ...prev,
+                    feature: {
+                        ...prev.feature,
+                        properties: {
+                            ...prev.feature.properties,
+                            _id: parliamentObjectId,
+                            mongoId: parliamentObjectId
+                        }
+                    }
+                }));
+            }
+            
+            setHoverData(prev => ({
+                ...prev,
+                [cacheKey]: {
+                    parliamentData,
+                    assembliesData: relatedData.assemblies?.data || [],
+                    boothsData: relatedData.booths?.data || [],
+                    casteLists: relatedData.casteLists?.data || [],
+                    winningCandidates: relatedData.winningCandidates?.data || [],
+                    parliamentCandidates: relatedData.parliamentCandidates?.data || [],
+                    parliamentVotes: relatedData.parliamentVotes?.data || [],
+                    genderData: {
+                        male: totalMale,
+                        female: totalFemale,
+                        others: totalOthers,
+                        total: totalMale + totalFemale + totalOthers
+                    },
+                    totals: {
+                        assemblies: relatedData.assemblies?.count || 0,
+                        booths: relatedData.booths?.count || 0
+                    },
+                    relatedData
+                }
+            }));
+        } catch (error) {
+            console.error('❌ Error fetching parliament data:', error);
+        }
+    };
+
+    // Function to fetch comprehensive assembly data
+    // Function to fetch comprehensive assembly data
+    const fetchAssemblyDataDetailed = async (assemblyId) => {
+        try {
+            console.log('🔍 fetchAssemblyDataDetailed called with:', assemblyId);
+            
+            // Fetch assembly basic info
+            let assemblyResponse;
+            if (assemblyId && assemblyId.length === 24) {
+                assemblyResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/${assemblyId}`);
+            } else {
+                assemblyResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?search=${encodeURIComponent(assemblyId)}`);
+            }
+            
+            let assemblyData = {};
+            if (assemblyResponse.ok) {
+                const result = await assemblyResponse.json();
+                if (result.success) {
+                    if (Array.isArray(result.data)) {
+                        assemblyData = result.data[0] || {};
+                    } else {
+                        assemblyData = result.data || {};
+                    }
+                }
+            }
+
+            const assemblyObjectId = assemblyData?._id;
+            if (!assemblyObjectId) {
+                console.warn('⚠️ Could not fetch assembly data for ID:', assemblyId);
+                return;
+            }
+            
+            const headers = getAuthHeaders();
+            
+            // Fetch comprehensive related data using /related-data endpoint
+            const relatedDataResponse = await fetch(
+                `${import.meta.env.VITE_APP_API_URL}/assemblies/${assemblyObjectId}/related-data`,
+                { headers }
+            );
+            
+            let relatedData = {};
+            if (relatedDataResponse.ok) {
+                const result = await relatedDataResponse.json();
+                if (result.success && result.data) {
+                    relatedData = result.data;
+                    console.log('✅ Assembly related data fetched');
+                }
+            }
+
+            // Calculate aggregates from winning candidates (electors and votes)
+            const winningCandidatesData = relatedData.winningCandidates?.data || [];
+            console.log('📊 Winning candidates data for aggregation:', { count: winningCandidatesData.length, data: winningCandidatesData.slice(0, 2) });
+            
+            // Use electors from winning candidates as population
+            const totalElectors = winningCandidatesData.reduce((sum, c) => sum + (c.electors || 0), 0);
+            const totalMaleElectors = winningCandidatesData.reduce((sum, c) => sum + (c.male_electors || 0), 0);
+            const totalFemaleElectors = winningCandidatesData.reduce((sum, c) => sum + (c.female_electors || 0), 0);
+            
+            // Fallback to gender data if no winning candidate data
+            let totalMale = totalMaleElectors;
+            let totalFemale = totalFemaleElectors;
+            let totalOthers = 0;
+            
+            if (totalMale === 0 && totalFemale === 0) {
+                const genderData = relatedData.genders?.data || [];
+                totalMale = genderData.reduce((sum, g) => sum + (g.Male_Count || g.male || 0), 0);
+                totalFemale = genderData.reduce((sum, g) => sum + (g.Female_Count || g.female || 0), 0);
+                totalOthers = genderData.reduce((sum, g) => sum + (g.others_Count || g.others || 0), 0);
+            }
+            
+            console.log('📊 Aggregated population totals:', { totalMale, totalFemale, totalOthers, totalElectors });
+
+            // ✅ CRITICAL FIX: Use unique cache key based on MongoDB _id
+            const cacheKey = `assembly_${String(assemblyObjectId)}`;
+            
+            // Update panel feature with MongoDB _id for cache key lookup
+            if (isPanelOpen && panelLevel === 'assembly') {
+                setPanelData(prev => ({
+                    ...prev,
+                    feature: {
+                        ...prev.feature,
+                        properties: {
+                            ...prev.feature.properties,
+                            _id: assemblyObjectId,
+                            mongoId: assemblyObjectId
+                        }
+                    }
+                }));
+            }
+            
+            setHoverData(prev => ({
+                ...prev,
+                [cacheKey]: {
+                    assemblyData,
+                    boothsData: relatedData.booths?.data || [],
+                    casteLists: relatedData.casteLists?.data || [],
+                    winningCandidates: relatedData.winningCandidates?.data || [],
+                    assemblyVotes: relatedData.assemblyVotes?.data || [],
+                    genderData: {
+                        male: totalMale,
+                        female: totalFemale,
+                        others: totalOthers,
+                        total: totalMale + totalFemale + totalOthers
+                    },
+                    totalBooths: relatedData.booths?.count || relatedData.booths?.data?.length || 0,
+                    totals: {
+                        booths: relatedData.booths?.count || relatedData.booths?.data?.length || 0
+                    },
+                    winningData: {
+                        current_mla: relatedData.winningCandidates?.data?.[0]?.candidate_id?.name || relatedData.winningCandidates?.data?.[0]?.candidate_name || '—'
+                    },
+                    relatedData
+                }
+            }));
+        } catch (error) {
+            console.error('❌ Error fetching assembly data:', error);
+        }
+    };
+
     // Function to fetch comprehensive block data
     const fetchBlockDataDetailed = async (blockId) => {
         try {
-
+            console.log('🔍 fetchBlockDataDetailed called with:', blockId);
             
             // Fetch block basic info
             let blockResponse;
-            if (blockId.length === 24) { // ObjectId format
+            if (blockId && blockId.length === 24) {
                 blockResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/blocks/${blockId}`);
             } else {
-                // Search by name
                 blockResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/blocks?search=${encodeURIComponent(blockId)}`);
             }
             
@@ -2562,83 +2395,161 @@ function HierarchicalMap({ onRegionClick }) {
             if (blockResponse.ok) {
                 const result = await blockResponse.json();
                 if (result.success) {
-                    blockData = Array.isArray(result.data) ? result.data[0] : result.data;
-
+                    if (Array.isArray(result.data)) {
+                        blockData = result.data[0] || {};
+                    } else {
+                        blockData = result.data || {};
+                    }
                 }
             }
 
-            // Fetch total booths count for block
-            const blockObjectId = blockData._id;
-            
-            // If we couldn't fetch block data, skip the rest
+            const blockObjectId = blockData?._id;
             if (!blockObjectId) {
                 console.warn('⚠️ Could not fetch block data for ID:', blockId);
                 return;
             }
             
             const headers = getAuthHeaders();
-            const boothsResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?block=${blockObjectId}&limit=1`, { headers });
-            let totalBooths = 0;
-            if (boothsResponse.ok) {
-                const result = await boothsResponse.json();
-                if (result.success) {
-                    totalBooths = result.total || 0;
-
+            
+            // Fetch comprehensive related data using /related-data endpoint
+            const relatedDataResponse = await fetch(
+                `${import.meta.env.VITE_APP_API_URL}/blocks/${blockObjectId}/related-data`,
+                { headers }
+            );
+            
+            let relatedData = {};
+            if (relatedDataResponse.ok) {
+                const result = await relatedDataResponse.json();
+                if (result.success && result.data) {
+                    relatedData = result.data;
+                    console.log('✅ Block related data fetched');
                 }
             }
 
-            // Store data under multiple cache keys for flexibility
-            const keysToSet = new Set();
-            keysToSet.add(`block_${blockId.toLowerCase()}`);
-            
-            // Also add cache key using block name if available
-            if (blockData && blockData.name) {
-                keysToSet.add(`block_${blockData.name.toLowerCase()}`);
-            }
-            
-            // Also add cache key using _id if available
-            if (blockData && blockData._id) {
-                keysToSet.add(`block_${blockData._id}`);
-            }
-            
-            setHoverData(prev => {
-                const next = { ...prev };
-                keysToSet.forEach(key => {
-                    next[key] = {
-                        ...next[key],
-                        blockData,
-                        totalBooths
-                    };
-                });
-                return next;
-            });
-        } catch (error) {
+            // Calculate aggregates
+            const genderData = relatedData.genders?.data || [];
+            const totalMale = genderData.reduce((sum, g) => sum + (g.Male_Count || g.male || 0), 0);
+            const totalFemale = genderData.reduce((sum, g) => sum + (g.Female_Count || g.female || 0), 0);
+            const totalOthers = genderData.reduce((sum, g) => sum + (g.others_Count || g.others || 0), 0);
 
+            // ✅ CRITICAL FIX: Use unique cache key based on MongoDB _id
+            const cacheKey = `block_${String(blockObjectId)}`;
+            
+            // Update panel feature with MongoDB _id for cache key lookup
+            if (isPanelOpen && panelLevel === 'block') {
+                setPanelData(prev => ({
+                    ...prev,
+                    feature: {
+                        ...prev.feature,
+                        properties: {
+                            ...prev.feature.properties,
+                            _id: blockObjectId,
+                            mongoId: blockObjectId
+                        }
+                    }
+                }));
+            }
+            
+            setHoverData(prev => ({
+                ...prev,
+                [cacheKey]: {
+                    blockData,
+                    boothsData: relatedData.booths?.data || [],
+                    casteLists: relatedData.casteLists?.data || [],
+                    genderData: {
+                        male: totalMale,
+                        female: totalFemale,
+                        others: totalOthers,
+                        total: totalMale + totalFemale + totalOthers
+                    },
+                    totalBooths: relatedData.booths?.count || relatedData.booths?.data?.length || 0,
+                    totals: {
+                        booths: relatedData.booths?.count || relatedData.booths?.data?.length || 0
+                    },
+                    relatedData
+                }
+            }));
+        } catch (error) {
+            console.error('❌ Error fetching block data:', error);
         }
     };
 
     // Function to fetch comprehensive booth data
     const fetchBoothDataDetailed = async (boothId) => {
         try {
-
+            console.log('🔍 fetchBoothDataDetailed called with:', boothId, 'Type:', typeof boothId);
             
-            // Fetch booth basic info by booth number
+            // Skip if we already have data for this booth
+            const cacheKey = `booth_${boothId}`;
+            if (hoverData[cacheKey]?.boothData) {
+                console.log('💾 Booth data already cached');
+                return;
+            }
+            
+            // Fetch booth basic info by booth ID
             const headers = getAuthHeaders();
-            const boothResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?search=${encodeURIComponent(boothId)}`, { headers });
+            let boothResponse;
+            
+            // Convert to string if it's an object
+            const boothIdStr = String(boothId);
+            console.log('📝 Converted boothId to string:', boothIdStr, 'Length:', boothIdStr.length);
+            
+            // Try to fetch by ID first (if it's a MongoDB ObjectId - 24 hex characters)
+            if (boothIdStr && boothIdStr.length === 24 && /^[0-9a-f]{24}$/i.test(boothIdStr)) {
+                console.log('📍 Fetching booth by ID:', boothIdStr);
+                boothResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths/${boothIdStr}`, { headers });
+            } else {
+                // If not a valid MongoDB ID, skip the API call
+                console.warn('⚠️ Booth ID is not a valid MongoDB ObjectId:', boothIdStr);
+                return;
+            }
+            
+            console.log('📡 Booth API Response status:', boothResponse.status);
+            
             let boothData = {};
             if (boothResponse.ok) {
                 const result = await boothResponse.json();
-                if (result.success && result.data && result.data.length > 0) {
-                    // Find the exact booth by booth_number
-                    boothData = result.data.find(booth => 
-                        booth.booth_number == boothId || 
-                        booth.booth_number === boothId.toString()
-                    ) || result.data[0];
-
+                console.log('📦 Booth API Response:', result);
+                if (result.success) {
+                    boothData = result.data || {};
                 }
+            } else {
+                console.error('❌ Booth API Response not OK:', boothResponse.status, boothResponse.statusText);
+                try {
+                    const errorResult = await boothResponse.json();
+                    console.error('❌ Error details:', errorResult);
+                } catch (e) {
+                    console.error('❌ Could not parse error response');
+                }
+                return;
             }
 
-            // Extract gender stats directly from booth data (booth model has these fields)
+            const boothObjectId = boothData?._id;
+            console.log('🔍 Extracted boothObjectId:', boothObjectId, 'Type:', typeof boothObjectId);
+            
+            if (!boothObjectId) {
+                console.warn('⚠️ Could not fetch booth data for ID:', boothId, 'Booth Data:', boothData);
+                return;
+            }
+            
+            // Fetch comprehensive related data using /related-data endpoint
+            const relatedDataResponse = await fetch(
+                `${import.meta.env.VITE_APP_API_URL}/booths/${boothObjectId}/related-data`,
+                { headers }
+            );
+            
+            let relatedData = {};
+            if (relatedDataResponse.ok) {
+                const result = await relatedDataResponse.json();
+                if (result.success && result.data) {
+                    relatedData = result.data;
+                    console.log('✅ Booth related data fetched');
+                }
+            } else {
+                console.warn('⚠️ Related data fetch failed:', relatedDataResponse.status);
+            }
+
+            // Extract gender stats from booth data
             let genderData = {};
             if (boothData && (boothData.Male_Count || boothData.Female_Count || boothData.Total)) {
                 genderData = {
@@ -2647,21 +2558,44 @@ function HierarchicalMap({ onRegionClick }) {
                     others: boothData.others_Count || 0,
                     total: boothData.Total || 0
                 };
-
             }
+
+            // ✅ CRITICAL FIX: Use unique cache key based on MongoDB _id
+            console.log('💾 Storing booth data with cache key:', cacheKey);
+            console.log('📊 Booth data to store:', { 
+                boothData: !!boothData, 
+                genderData: !!genderData, 
+                relatedData: !!relatedData,
+                boothName: boothData?.name,
+                boothNumber: boothData?.booth_number
+            });
+            
+            // Update panel feature with MongoDB _id for cache key lookup
+            if (isPanelOpen && panelLevel === 'booth') {
+                console.log('📝 Updating panel feature with booth _id');
+                setPanelData(prev => ({
+                    ...prev,
+                    feature: {
+                        ...prev.feature,
+                        properties: {
+                            ...prev.feature.properties,
+                            _id: boothObjectId,
+                            mongoId: boothObjectId
+                        }
+                    }
+                }));
+            }
+            
             setHoverData(prev => ({
                 ...prev,
-                [`booth_${boothId}`]: {
-                    ...prev[`booth_${boothId}`],
+                [cacheKey]: {
                     boothData,
-                    genderData
+                    genderData,
+                    relatedData
                 }
             }));
-            
-            // Return booth data for immediate use
-            return boothData;
         } catch (error) {
-            return {};
+            console.error('❌ Error fetching booth data:', error);
         }
     };
 
@@ -2752,7 +2686,7 @@ function HierarchicalMap({ onRegionClick }) {
             if (response.ok) {
                 const data = await response.json();
                 if (data.success) {
-                    const cacheKey = `parliamentary_${parliamentId}`;
+                    const cacheKey = `parliament_${parliamentId}`;
                     setHoverData(prev => ({
                         ...prev,
                         [cacheKey]: {
@@ -2821,143 +2755,66 @@ function HierarchicalMap({ onRegionClick }) {
     // Function to fetch booth data directly from booth API
     const fetchBoothGenderData = async (boothId) => {
         try {
+            console.log('🔍 fetchBoothGenderData called with:', boothId);
+            
+            // Skip if we already have data for this booth
+            const cacheKey = `booth_${boothId}`;
+            if (hoverData[cacheKey]?.genderData) {
+                console.log('💾 Booth gender data already cached');
+                return;
+            }
+            
             // If we have polygon-derived properties cached for this booth, use them immediately
             try {
                 const cachedPolygon = boothLookupRef.current[String(boothId)];
                 if (cachedPolygon) {
-                    const cacheKey = `booth_${boothId}`;
                     // populate hoverData quickly so popup can show immediate info while we fetch counts
                     setHoverData(prev => ({
                         ...prev,
                         [cacheKey]: {
                             ...prev[cacheKey],
                             boothData: cachedPolygon,
-                            // no genderData yet; will be filled below
                         }
                     }));
                 }
             } catch (err) {
                 // non-fatal
             }
-            // First try to get booth data by booth number
-            const encodedId = encodeURIComponent(boothId);
-            const url = `${import.meta.env.VITE_APP_API_URL}/booths?search=${encodedId}`;
-
-
             
-            const response = await fetch(url);
-            if (response.ok) {
-                const data = await response.json();
-
-                if (data.success && data.data && data.data.length > 0) {
-                    
-                    // Find the booth that matches our booth number
-                    const matchingBooth = data.data.find(booth => 
-                        booth.booth_number == boothId || 
-                        booth.booth_number === boothId.toString()
-                    );
-                    
-
-                    
-                    if (matchingBooth) {
-                        const cacheKey = `booth_${boothId}`;
-                        // Transform booth API data to match expected gender data structure
+            // Try to fetch booth by ID if it's a MongoDB ObjectId
+            const boothIdStr = String(boothId);
+            if (boothIdStr.length === 24 && /^[0-9a-f]{24}$/i.test(boothIdStr)) {
+                console.log('📍 Fetching booth by MongoDB ID:', boothIdStr);
+                const headers = getAuthHeaders();
+                const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths/${boothIdStr}`, { headers });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data) {
+                        const booth = data.data;
                         const genderData = {
-                            male: matchingBooth.Male_Count || 0,
-                            female: matchingBooth.Female_Count || 0,
-                            others: matchingBooth.others_Count || 0,
-                            total: matchingBooth.Total || 0
+                            male: booth.Male_Count || 0,
+                            female: booth.Female_Count || 0,
+                            others: booth.others_Count || 0,
+                            total: booth.Total || 0
                         };
-
-                        // Update lookup cache too
-                        try { boothLookupRef.current[String(matchingBooth.booth_number)] = matchingBooth; } catch (e) {}
-
-                        // Update hoverData (this will overwrite any quick polygon-only entry)
+                        
                         setHoverData(prev => ({
                             ...prev,
                             [cacheKey]: {
                                 ...prev[cacheKey],
                                 genderData,
-                                boothData: matchingBooth
+                                boothData: booth
                             }
                         }));
-                    } else {
-                        // No matching booth found
-                        // Try fetching all booths to see what's available
-                        const allBoothsUrl = `${import.meta.env.VITE_APP_API_URL}/booths?limit=10`;
-                        const allBoothsResponse = await fetch(allBoothsUrl);
-                        if (allBoothsResponse.ok) {
-                            const allBoothsData = await allBoothsResponse.json();
-                        }
+                        return;
                     }
-                } else if (data.success && data.total === 0) {
-
-                    // Fetch a larger set (or all) booths and try client-side matching to handle mismatched search behavior
-                    try {
-                        const allUrl = `${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`;
-
-                        const allResp = await fetch(allUrl);
-                        if (allResp.ok) {
-                            const allData = await allResp.json();
-                            const candidates = Array.isArray(allData.data) ? allData.data : [];
-
-
-                            // Normalize boothId for matching
-                            const boothIdStr = String(boothId).trim();
-                            const boothIdNum = Number(boothIdStr);
-
-                            const matchingBooth = candidates.find(b => {
-                                // try numeric match
-                                if (!isNaN(boothIdNum) && (Number(b.booth_number) === boothIdNum)) return true;
-                                // string exact
-                                if (String(b.booth_number) === boothIdStr) return true;
-                                // substring in name or booth_number
-                                if (b.name && String(b.name).toLowerCase().includes(boothIdStr.toLowerCase())) return true;
-                                if (String(b.booth_number).toLowerCase().includes(boothIdStr.toLowerCase())) return true;
-                                return false;
-                            });
-
-                            if (matchingBooth) {
-                                const cacheKey = `booth_${boothId}`;
-
-                                const genderData = {
-                                    male: matchingBooth.Male_Count || 0,
-                                    female: matchingBooth.Female_Count || 0,
-                                    others: matchingBooth.others_Count || 0,
-                                    total: matchingBooth.Total || 0
-                                };
-                                setHoverData(prev => ({
-                                    ...prev,
-                                    [cacheKey]: {
-                                        ...prev[cacheKey],
-                                        genderData,
-                                        boothData: matchingBooth
-                                    }
-                                }));
-                            } else {
-
-                            }
-                        }
-                    } catch (err) {
-
-                    }
-                } else {
-
-                }
-            } else {
-                let errorText;
-                try {
-                    const errorJson = await response.json();
-                    errorText = JSON.stringify(errorJson);
-
-                } catch (e) {
-                    errorText = await response.text();
-
                 }
             }
-        } catch (error) {
-
-
+            
+            console.log('⚠️ Could not fetch booth data for:', boothId);
+        } catch (err) {
+            console.error('❌ Error in fetchBoothGenderData:', err.message);
         }
     };
 
@@ -2974,44 +2831,30 @@ function HierarchicalMap({ onRegionClick }) {
             });
         }
 
-        // Create cache key same as hover data
-        const properties = feature.properties;
-        const featureId = properties.id;
-        let cacheKey;
-        if (level === 'parliamentary') {
-            const parliamentId = properties.pcNo || properties.parliamentId || properties.parliament_no || properties.id;
-            cacheKey = `${level}_${parliamentId}`;
-        } else if (level === 'assembly') {
-            // For assembly, use AC_NO (Assembly Constituency Number) which should match database
-            const assemblyId = properties.AC_NO || properties.acNo || properties.assembly_no || properties.assemblyNo || properties.id;
-            cacheKey = `${level}_${assemblyId}`;
-        } else if (level === 'booth') {
-            const boothId = properties.BoothNo || properties.boothNo || 
-                          properties.booth_number || properties.boothNumber || 
-                          properties.booth_no || properties.BoothNumber ||
-                          properties.id || properties.BoothId || properties._id;
-            cacheKey = `booth_${boothId}`;
-        } else if (level === 'block') {
-            const blockId = properties.name || properties.Name || properties.id;
-            cacheKey = `${level}_${blockId ? blockId.toLowerCase() : featureId}`;
-        } else {
-            cacheKey = `${level}_${featureId}`;
+        // ✅ CRITICAL FIX: Only clear data for THIS specific region, not all cached data
+        // This prevents data overlap from other regions
+        const cacheKey = generateCacheKey(level, feature);
+        console.log('🔄 Opening panel for:', level, 'CacheKey:', cacheKey);
+        
+        // Clear only this region's cached data to force fresh fetch
+        setHoverData(prev => {
+            const next = { ...prev };
+            delete next[cacheKey];
+            return next;
+        });
+        
+        // Clear booth-specific data only if switching away from booth level
+        if (level !== 'booth') {
+            setBoothAggregates(null);
+            setSelectedBoothDetails(null);
         }
 
-        // For assembly level, log the polygon properties to debug
-        if (level === 'assembly') {
-            
-        }
-        // For parliamentary level, log the polygon properties to debug
-        if (level === 'parliamentary') {
-            
-        }
         // Open panel immediately with loading state
         setIsPanelLoading(true);
         setPanelData({
             feature,
             level,
-            data: hoverData[cacheKey] || {}
+            data: {} // Start with empty data
         });
         setPanelLevel(level);
         setIsPanelOpen(true);
@@ -3021,14 +2864,6 @@ function HierarchicalMap({ onRegionClick }) {
             console.warn('⏱️ Loading timeout reached for', level, cacheKey);
             setIsPanelLoading(false);
         }, 10000);
-
-        // Check if we already have data in hoverData cache
-        const existingData = hoverData[cacheKey];
-        if (existingData && Object.keys(existingData).length > 0) {
-            clearTimeout(loadingTimeout);
-            setIsPanelLoading(false);
-            return;
-        }
 
         // If no cached data, fetch it using the same logic as hover
         try {
@@ -3053,9 +2888,9 @@ function HierarchicalMap({ onRegionClick }) {
                     await fetchParliamentData(parliamentId, parliamentName);
                 }
             } else if (level === 'assembly') {
-                const assemblyId = feature.properties.AC_NO || feature.properties.acNo || feature.properties.assembly_no || feature.properties.assemblyNo || feature.properties.id;
+                const assemblyId = feature.properties._id || feature.properties.id || feature.properties.AC_NO || feature.properties.acNo;
                 if (assemblyId) {
-
+                    console.log('🔍 Assembly clicked - ID:', assemblyId, 'Name:', feature.properties.name);
                     await fetchAssemblyDataDetailed(assemblyId);
                 }
             } else if (level === 'block') {
@@ -3065,46 +2900,16 @@ function HierarchicalMap({ onRegionClick }) {
                     await fetchBlockDataDetailed(blockId);
                 }
             } else if (level === 'booth') {
-                const boothNo = feature.properties.BoothNo || feature.properties.boothNo || feature.properties.booth_number;
-                const boothIdFromProps = feature.properties.BoothNumber || feature.properties.boothNumber || feature.properties.id || feature.properties._id;
+                const boothId = feature.properties._id || feature.properties.id;
+                const boothNo = feature.properties.boothNo || feature.properties.booth_number;
                 
-                if (boothNo) {
-                    // First fetch booth detailed info to get the actual MongoDB _id
-                    const boothData = await fetchBoothDataDetailed(boothNo);
-                    const actualBoothId = boothData._id || boothIdFromProps;
+                if (boothId) {
+                    console.log('🔍 Booth clicked - ID:', boothId, 'BoothNo:', boothNo, 'Name:', feature.properties.name);
+                    await fetchBoothDataDetailed(boothId);
                     
-                    console.log('🔍 Booth clicked - BoothNo:', boothNo, 'Actual _id:', actualBoothId, 'BoothData:', boothData);
-                    
-                    // Set selectedBoothDetails from fetched boothData or feature properties
-                    setSelectedBoothDetails({
-                        _id: actualBoothId,
-                        booth_number: boothNo || boothData.booth_number || feature.properties.BoothNo,
-                        booth_name: boothData.name || feature.properties.BoothName || feature.properties.boothName,
-                        full_address: boothData.full_address || feature.properties.Location,
-                        state_name: boothData.state_id?.name || 'Madhya Pradesh',
-                        division_name: boothData.division_id?.name || feature.properties.divisionName || 'N/A',
-                        district_name: boothData.district_id?.name || 'N/A',
-                        block_name: boothData.block_id?.name || feature.properties.BlockName,
-                        assembly_name: boothData.assembly_id?.name || feature.properties.AC_NAME,
-                        parliament_name: boothData.parliament_id?.name || feature.properties.pcName,
-                        election_year: boothData.election_year || '2023',
-                        total_voters: boothData.Total || boothData.total_voters || feature.properties.totalVoters || 0,
-                        male_voters: boothData.Male_Count || boothData.male_voters || 0,
-                        female_voters: boothData.Female_Count || boothData.female_voters || 0,
-                        other_voters: boothData.others_Count || boothData.other_voters || 0,
-                        latitude: feature.properties.latitude,
-                        longitude: feature.properties.longitude,
-                        created_at: boothData.created_at,
-                        updated_at: boothData.updated_at
-                    });
-                    
-                    // Fetch aggregates using the actual MongoDB _id
-                    if (actualBoothId) {
-                        console.log('📊 Fetching aggregates for booth _id:', actualBoothId);
-                        await fetchBoothAggregates(actualBoothId, boothNo);
-                    } else {
-                        console.warn('⚠️ No valid booth _id found, cannot fetch aggregates');
-                    }
+                    // Fetch aggregates using the booth MongoDB _id
+                    console.log('📊 Fetching aggregates for booth _id:', boothId);
+                    await fetchBoothAggregates(boothId, boothNo);
                 }
             }
 
@@ -3178,18 +2983,18 @@ function HierarchicalMap({ onRegionClick }) {
                 setCurrentLevel('block');
                 break;
             case 'block':
-                const BlockNumber = feature.properties.BlockNumber || feature.properties.blockNumber;
+                const blockId = feature.properties._id || feature.properties.id;
                 const blockAcNo = feature.properties.AC_NO || feature.properties.acNo;
                 console.log('🖱️ Double-click on block:', feature.properties.name);
                 console.log('📋 Block properties:', feature.properties);
-                console.log('🔢 Using BlockNumber:', BlockNumber, 'AC_NO:', blockAcNo);
+                console.log('🔢 Using Block ID:', blockId, 'AC_NO:', blockAcNo);
                 
-                if (BlockNumber) {
-                    loadBoothData(BlockNumber, blockAcNo);
+                if (blockId) {
+                    loadBoothData(blockId, blockAcNo);
                     setCurrentLevel('booth');
                 } else {
-                    console.warn('⚠️ No BlockNumber found in properties');
-                    alert(`Block information incomplete.\n\nBlockNumber: ${BlockNumber}\n\nCannot navigate to booths without BlockNumber.`);
+                    console.warn('⚠️ No block ID found in properties');
+                    alert(`Block information incomplete.\n\nBlock ID: ${blockId}\n\nCannot navigate to booths without Block ID.`);
                 }
                 break;
             default:
@@ -3263,14 +3068,30 @@ function HierarchicalMap({ onRegionClick }) {
             case 'division':
                 const divisionData = safeData.divisionData || {};
                 const parliamentsData = safeData.parliamentsData || [];
+                const divisionGenderData = safeData.genderData || {};
+                const divisionAssembliesData = safeData.assembliesData || [];
                 
                 sections = [
                     {
                         title: 'Basic Information',
                         items: [
                             { label: 'Division Name', value: divisionData.name || properties.name || properties.Name || '' },
-                            { label: 'State Name', value: divisionData.state_id?.name || 'Madhya Pradesh' },
-                            { label: 'Total Parliamentary Constituencies', value: parliamentsData.length || '—' }
+                            { label: 'State Name', value: divisionData.state_id?.name || 'Madhya Pradesh' }
+                        ]
+                    },
+                    {
+                        title: 'Hierarchy Statistics',
+                        items: [
+                            { label: 'Total Parliaments', value: parliamentsData.length || '—' },
+                            { label: 'Total Assemblies', value: divisionAssembliesData.length || '—' }
+                        ]
+                    },
+                    {
+                        title: 'Voter Statistics',
+                        items: [
+                            { label: 'Total Population', value: divisionGenderData.total ? Number(divisionGenderData.total).toLocaleString() : '—' },
+                            { label: 'Male', value: divisionGenderData.male ? Number(divisionGenderData.male).toLocaleString() : '—' },
+                            { label: 'Female', value: divisionGenderData.female ? Number(divisionGenderData.female).toLocaleString() : '—' }
                         ]
                     }
                 ];
@@ -3286,9 +3107,11 @@ function HierarchicalMap({ onRegionClick }) {
             case 'parliamentary':
                 const parliamentData = safeData.parliamentData || {};
                 const parliamentGenderData = safeData.genderData || {};
-                const parliamentWinningData = safeData.winningData || {};
+                const parliamentWinningCandidates = safeData.winningCandidates || [];
+                const parliamentCandidates = safeData.parliamentCandidates || [];
                 const assembliesData = safeData.assembliesData || [];
-                const totalBooths = safeData.totalBooths || 0;
+                const parliamentCasteLists = safeData.casteLists || [];
+                const totalBooths = safeData.totals?.booths || 0;
 
                 sections = [
                     {
@@ -3301,30 +3124,61 @@ function HierarchicalMap({ onRegionClick }) {
                         ]
                     },
                     {
+                        title: 'Hierarchy Statistics',
+                        items: [
+                            { label: 'Total Assemblies', value: assembliesData.length || '—' },
+                            { label: 'Total Booths', value: totalBooths || '—' }
+                        ]
+                    },
+                    {
                         title: 'Voter Statistics',
                         items: [
-                            { label: 'Total Voters in PC', value: parliamentGenderData.total ? Number(parliamentGenderData.total).toLocaleString() : '—' },
-                            { label: 'Total Male Voters', value: parliamentGenderData.male ? Number(parliamentGenderData.male).toLocaleString() : '—' },
-                            { label: 'Total Female Voters', value: parliamentGenderData.female ? Number(parliamentGenderData.female).toLocaleString() : '—' }
-                        ]
-                    },
-                    {
-                        title: 'Election History',
-                        items: [
-                            { label: 'Winning Party 2024', value: parliamentWinningData.winner_2024 || 'BJP' },
-                            { label: 'Winning Party 2019', value: parliamentWinningData.winner_2019 || 'BJP' },
-                            { label: 'Winning Party 2014', value: parliamentWinningData.winner_2014 || 'BJP' },
-                            { label: 'Current MP Name', value: parliamentWinningData.current_mp || '—' }
-                        ]
-                    },
-                    {
-                        title: 'Administrative Details',
-                        items: [
-                            { label: 'Total Booths', value: totalBooths || '—' },
-                            { label: 'Total Assembly', value: assembliesData.length || '—' }
+                            { label: 'Total Population', value: parliamentGenderData.total ? Number(parliamentGenderData.total).toLocaleString() : '—' },
+                            { label: 'Male', value: parliamentGenderData.male ? Number(parliamentGenderData.male).toLocaleString() : '—' },
+                            { label: 'Female', value: parliamentGenderData.female ? Number(parliamentGenderData.female).toLocaleString() : '—' }
                         ]
                     }
                 ];
+
+                // Add Caste Information
+                if (parliamentCasteLists.length > 0) {
+                    // Group by category
+                    const castesByCategory = {};
+                    parliamentCasteLists.forEach(caste => {
+                        const category = caste.category || 'Other';
+                        if (!castesByCategory[category]) {
+                            castesByCategory[category] = [];
+                        }
+                        castesByCategory[category].push(caste);
+                    });
+                    
+                    sections.push({
+                        title: `Caste Distribution (${parliamentCasteLists.length})`,
+                        list: Object.entries(castesByCategory).map(([category, castes]) => 
+                            `${category} (${castes.length})`
+                        )
+                    });
+                }
+
+                // Add Last 3 Winning Candidates from winningCandidates
+                // if (parliamentWinningCandidates.length > 0) {
+                //     sections.push({
+                //         title: 'Last 3 Winning Candidates',
+                //         list: parliamentWinningCandidates.slice(0, 3).map(candidate => 
+                //             `${candidate.candidate_id?.name || candidate.candidate_name || candidate.name || 'Candidate'} (${candidate.election_year_id?.year || candidate.election_year || candidate.year || 'N/A'})`
+                //         )
+                //     });
+                // }
+
+                // Add Last 3 Parliament Candidates from parliamentCandidates
+                if (parliamentCandidates.length > 0) {
+                    sections.push({
+                        title: 'Parliament winning Candidates',
+                        list: parliamentCandidates.slice(0, 3).map(candidate => 
+                            `${candidate.candidate_id?.name || candidate.candidate_name || candidate.name || 'Candidate'} - ${candidate.party_id?.name || candidate.party_name || 'Party'} (${candidate.election_year_id?.year || candidate.election_year || candidate.year || 'N/A'})`
+                        )
+                    });
+                }
 
                 if (assembliesData.length > 0) {
                     sections.push({
@@ -3337,8 +3191,9 @@ function HierarchicalMap({ onRegionClick }) {
             case 'assembly':
                 const assemblyData = safeData.assemblyData || {};
                 const assemblyGenderData = safeData.genderData || {};
-                const assemblyWinningData = safeData.winningData || {};
-                const assemblyTotalBooths = safeData.totalBooths || 0;
+                const assemblyWinningCandidates = safeData.winningCandidates || [];
+                const assemblyCasteLists = safeData.casteLists || [];
+                const assemblyTotalBooths = safeData.totalBooths || safeData.totals?.booths || 0;
                 
                 sections = [
                     {
@@ -3352,27 +3207,68 @@ function HierarchicalMap({ onRegionClick }) {
                         ]
                     },
                     {
-                        title: 'Voter Statistics',
+                        title: 'Hierarchy Statistics',
                         items: [
-                            { label: 'Total Voters', value: assemblyGenderData.total ? Number(assemblyGenderData.total).toLocaleString() : '—' },
-                            { label: 'Total Male Voters', value: assemblyGenderData.male ? Number(assemblyGenderData.male).toLocaleString() : '—' },
-                            { label: 'Total Female Voters', value: assemblyGenderData.female ? Number(assemblyGenderData.female).toLocaleString() : '—' }
+                            { label: 'Total Assembly', value: '1' },
+                            // { label: 'Total Booths', value: assemblyTotalBooths || '—' }
                         ]
                     },
                     {
-                        title: 'Additional Information',
+                        title: 'Voter Statistics',
                         items: [
-                            { label: 'Current MLA Name', value: assemblyWinningData.current_mla || '—' },
-                            { label: 'Total Booths', value: assemblyTotalBooths || '—' }
+                            { label: 'Total Population', value: assemblyGenderData.total ? Number(assemblyGenderData.total).toLocaleString() : '—' },
+                            { label: 'Male', value: assemblyGenderData.male ? Number(assemblyGenderData.male).toLocaleString() : '—' },
+                            { label: 'Female', value: assemblyGenderData.female ? Number(assemblyGenderData.female).toLocaleString() : '—' }
                         ]
                     }
                 ];
+
+                // Add Caste Information
+                if (assemblyCasteLists.length > 0) {
+                    // Group by category
+                    const castesByCategory = {};
+                    assemblyCasteLists.forEach(caste => {
+                        const category = caste.category || 'Other';
+                        if (!castesByCategory[category]) {
+                            castesByCategory[category] = [];
+                        }
+                        castesByCategory[category].push(caste);
+                    });
+                    
+                    sections.push({
+                        title: `Caste Distribution (${assemblyCasteLists.length})`,
+                        list: Object.entries(castesByCategory).map(([category, castes]) => 
+                            `${category} (${castes.length})`
+                        )
+                    });
+                }
+
+                // Add Last 3 Winning Candidates from winningCandidates collection
+                if (assemblyWinningCandidates.length > 0) {
+                    sections.push({
+                        title: 'Last 3 Winning Candidates',
+                        list: assemblyWinningCandidates.slice(0, 3).map(candidate => 
+                            `${candidate.candidate_id?.name || candidate.candidate_name || candidate.name || 'Candidate'} (${candidate.year_id?.year || candidate.election_year_id?.year || candidate.election_year || candidate.year || 'N/A'})`
+                        )
+                    });
+                }
+
+                // Add Last 3 Winning Parties from winningCandidates collection
+                if (assemblyWinningCandidates.length > 0) {
+                    sections.push({
+                        title: 'Last 3 Winning Parties',
+                        list: assemblyWinningCandidates.slice(0, 3).map(candidate => 
+                            `${candidate.party_id?.name || candidate.party_name || 'Party'} (${candidate.year_id?.year || candidate.election_year_id?.year || candidate.election_year || candidate.year || 'N/A'})`
+                        )
+                    });
+                }
                 break;
 
             case 'block':
                 const blockData = safeData.blockData || {};
                 const blockGenderData = safeData.genderData || {};
-                const blockTotalBooths = safeData.totalBooths || 0;
+                const blockCasteLists = safeData.casteLists || [];
+                const blockTotalBooths = safeData.totalBooths || safeData.totals?.booths || 0;
                 
                 sections = [
                     {
@@ -3382,7 +3278,13 @@ function HierarchicalMap({ onRegionClick }) {
                             { label: 'Assembly Name', value: blockData.assembly_id?.name || properties.acName || properties.AC_NAME || '' },
                             { label: 'Parliament Name', value: blockData.parliament_id?.name || properties.pcName || '' },
                             { label: 'Division Name', value: blockData.division_id?.name || properties.divisionName || '' },
-                            { label: 'State Name', value: blockData.state_id?.name || 'Madhya Pradesh' },
+                            { label: 'State Name', value: blockData.state_id?.name || 'Madhya Pradesh' }
+                        ]
+                    },
+                    {
+                        title: 'Hierarchy Statistics',
+                        items: [
+                            { label: 'Total Assembly', value: blockData.assembly_id ? '1' : '—' },
                             { label: 'Total Booths', value: blockTotalBooths || properties.totalBooths || '—' }
                         ]
                     }
@@ -3392,10 +3294,30 @@ function HierarchicalMap({ onRegionClick }) {
                     sections.push({
                         title: 'Voter Statistics',
                         items: [
-                            { label: 'Total Voters', value: blockGenderData.total ? Number(blockGenderData.total).toLocaleString() : '—' },
-                            { label: 'Total Male Voters', value: blockGenderData.male ? Number(blockGenderData.male).toLocaleString() : '—' },
-                            { label: 'Total Female Voters', value: blockGenderData.female ? Number(blockGenderData.female).toLocaleString() : '—' }
+                            { label: 'Total Population', value: blockGenderData.total ? Number(blockGenderData.total).toLocaleString() : '—' },
+                            { label: 'Male', value: blockGenderData.male ? Number(blockGenderData.male).toLocaleString() : '—' },
+                            { label: 'Female', value: blockGenderData.female ? Number(blockGenderData.female).toLocaleString() : '—' }
                         ]
+                    });
+                }
+
+                // Add Caste Information
+                if (blockCasteLists.length > 0) {
+                    // Group by category
+                    const castesByCategory = {};
+                    blockCasteLists.forEach(caste => {
+                        const category = caste.category || 'Other';
+                        if (!castesByCategory[category]) {
+                            castesByCategory[category] = [];
+                        }
+                        castesByCategory[category].push(caste);
+                    });
+                    
+                    sections.push({
+                        title: `Caste Distribution (${blockCasteLists.length})`,
+                        list: Object.entries(castesByCategory).map(([category, castes]) => 
+                            `${category} (${castes.length})`
+                        )
                     });
                 }
                 break;
@@ -3403,6 +3325,8 @@ function HierarchicalMap({ onRegionClick }) {
             case 'booth':
                 const boothGenderData = safeData.genderData || {};
                 const boothData = safeData.boothData || {};
+                const boothCasteLists = safeData.casteLists || [];
+                const boothRelatedData = safeData.relatedData || {};
                 
                 const boothName = boothData.name || properties.BoothName || properties.boothName || '—';
                 const boothNumber = boothData.booth_number || properties.BoothNo || properties.boothNo || '—';
@@ -3423,6 +3347,13 @@ function HierarchicalMap({ onRegionClick }) {
                             { label: 'Division Name', value: divisionName },
                             { label: 'State Name', value: 'Madhya Pradesh' }
                         ]
+                    },
+                    {
+                        title: 'Hierarchy Statistics',
+                        items: [
+                            { label: 'Total Assembly', value: assemblyName !== '—' ? '1' : '—' },
+                            { label: 'Total Block', value: blockName !== '—' ? '1' : '—' }
+                        ]
                     }
                 ];
 
@@ -3430,10 +3361,31 @@ function HierarchicalMap({ onRegionClick }) {
                     sections.push({
                         title: 'Voter Statistics',
                         items: [
-                            { label: 'Total Voters', value: boothGenderData.total ? Number(boothGenderData.total).toLocaleString() : '—' },
-                            { label: 'Total Male Voters', value: boothGenderData.male ? Number(boothGenderData.male).toLocaleString() : '—' },
-                            { label: 'Total Female Voters', value: boothGenderData.female ? Number(boothGenderData.female).toLocaleString() : '—' }
+                            { label: 'Total Population', value: boothGenderData.total ? Number(boothGenderData.total).toLocaleString() : '—' },
+                            { label: 'Male', value: boothGenderData.male ? Number(boothGenderData.male).toLocaleString() : '—' },
+                            { label: 'Female', value: boothGenderData.female ? Number(boothGenderData.female).toLocaleString() : '—' }
                         ]
+                    });
+                }
+
+                // Add Caste Information from relatedData
+                const casteLists = boothRelatedData.casteLists?.data || boothCasteLists;
+                if (casteLists && casteLists.length > 0) {
+                    // Group by category
+                    const castesByCategory = {};
+                    casteLists.forEach(caste => {
+                        const category = caste.category || 'Other';
+                        if (!castesByCategory[category]) {
+                            castesByCategory[category] = [];
+                        }
+                        castesByCategory[category].push(caste);
+                    });
+                    
+                    sections.push({
+                        title: `Caste Distribution (${casteLists.length})`,
+                        list: Object.entries(castesByCategory).map(([category, castes]) => 
+                            `${category} (${castes.length})`
+                        )
                     });
                 }
 
@@ -3780,13 +3732,15 @@ function HierarchicalMap({ onRegionClick }) {
         // Create consistent cache key that matches how data is stored
         let cacheKey;
         if (level === 'parliamentary') {
-            // Use pcNo (parliament number) for consistent matching
+            // Use MongoDB _id if available, otherwise use parliament number
+            const parliamentObjectId = properties._id || properties.PC_ID;
             const parliamentId = properties.pcNo || properties.parliamentId || properties.parliament_no || properties.id;
-            cacheKey = `${level}_${parliamentId}`;
+            cacheKey = parliamentObjectId ? `parliament_${parliamentObjectId}` : `parliament_${parliamentId}`;
         } else if (level === 'assembly') {
             // For assembly, use AC_NO (Assembly Constituency Number) which should match database
+            const assemblyObjectId = properties._id;
             const assemblyId = properties.AC_NO || properties.acNo || properties.assembly_no || properties.assemblyNo || properties.id;
-            cacheKey = `${level}_${assemblyId}`;
+            cacheKey = assemblyObjectId ? `assembly_${assemblyObjectId}` : `assembly_${assemblyId}`;
         } else if (level === 'booth') {
             // For booth, use BoothNo from polygon data to match with booth_number in database
             const boothId = properties.BoothNo || properties.boothNo || 
@@ -4160,13 +4114,13 @@ function HierarchicalMap({ onRegionClick }) {
                                     <button
                                         onClick={() => {
                                             // Try multiple property combinations for assembly navigation
-                                            const assemblyCode = selectedFeature.properties.pcNo ||
-                                                selectedFeature.properties.PC_NO ||
-                                                selectedFeature.properties.acNo ||
-                                                selectedFeature.properties.AC_NO ||
-                                                'PC001';
-                                            loadAssemblyData(assemblyCode);
-                                            setCurrentLevel('assembly');
+                                            const assemblyId = selectedFeature.properties._id ||
+                                                selectedFeature.properties.assembly_id ||
+                                                selectedFeature.properties.id;
+                                            if (assemblyId) {
+                                                loadAssemblyData(assemblyId);
+                                                setCurrentLevel('assembly');
+                                            }
                                         }}
                                         style={{
                                             padding: '4px 8px',
@@ -4188,13 +4142,13 @@ function HierarchicalMap({ onRegionClick }) {
                                     <button
                                         onClick={() => {
                                             // Try multiple property combinations for block navigation
-                                            const blockCode = selectedFeature.properties.acNo ||
-                                                selectedFeature.properties.AC_NO ||
-                                                selectedFeature.properties.blockNumber ||
-                                                selectedFeature.properties.BlockNumber ||
-                                                'AC001';
-                                            loadBlockData(blockCode);
-                                            setCurrentLevel('block');
+                                            const blockId = selectedFeature.properties._id ||
+                                                selectedFeature.properties.block_id ||
+                                                selectedFeature.properties.id;
+                                            if (blockId) {
+                                                loadBlockData(blockId);
+                                                setCurrentLevel('block');
+                                            }
                                         }}
                                         style={{
                                             padding: '4px 8px',
