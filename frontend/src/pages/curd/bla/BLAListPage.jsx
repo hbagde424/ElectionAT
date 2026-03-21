@@ -460,6 +460,8 @@ const BLAListPage = () => {
     const applyFilters = () => {
         setAppliedFilters(tempFilters);
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        // Reload polygons with applied filters
+        loadBoothPolygons(tempFilters);
     };
 
     const clearFilters = () => {
@@ -478,6 +480,8 @@ const BLAListPage = () => {
         setAppliedFilters(emptyFilters);
         setGlobalFilter('');
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        // Reload polygons with cleared filters
+        loadBoothPolygons(emptyFilters);
     };
 
     // Map helpers
@@ -513,7 +517,7 @@ const BLAListPage = () => {
     };
 
     // Load booth polygons filtered by user access (like booth CRUD page)
-    const loadBoothPolygons = async () => {
+    const loadBoothPolygons = async (currentFilters = appliedFilters) => {
         try {
             const headers = getAuthHeaders();
             
@@ -544,8 +548,19 @@ const BLAListPage = () => {
 
             console.log('📍 Filtered booths for user access:', boothsToUse.length, 'out of', json.data.length);
 
-            // Fetch BLAs to get list of booths with data
-            const blasRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/blas?all=true&limit=50000`, { headers });
+            // Fetch BLAs to get list of booths with data, applying filters
+            let blasUrl = `${import.meta.env.VITE_APP_API_URL}/blas?all=true&limit=50000`;
+            if (currentFilters.state_id) blasUrl += `&state_id=${encodeURIComponent(currentFilters.state_id)}`;
+            if (currentFilters.division_id) blasUrl += `&division_id=${encodeURIComponent(currentFilters.division_id)}`;
+            if (currentFilters.parliament_id) blasUrl += `&parliament_id=${encodeURIComponent(currentFilters.parliament_id)}`;
+            if (currentFilters.assembly_id) blasUrl += `&assembly_id=${encodeURIComponent(currentFilters.assembly_id)}`;
+            if (currentFilters.block_id) blasUrl += `&block_id=${encodeURIComponent(currentFilters.block_id)}`;
+            if (currentFilters.booth_id) blasUrl += `&booth_id=${encodeURIComponent(currentFilters.booth_id)}`;
+            if (currentFilters.bla_name) blasUrl += `&bla_name=${encodeURIComponent(currentFilters.bla_name)}`;
+            if (currentFilters.contact_number) blasUrl += `&contact_number=${encodeURIComponent(currentFilters.contact_number)}`;
+            if (currentFilters.election_year_id) blasUrl += `&election_year_id=${encodeURIComponent(currentFilters.election_year_id)}`;
+            
+            const blasRes = await fetch(blasUrl, { headers });
             const blasJson = await blasRes.json();
             const boothsWithBLA = new Set();
             if (blasJson.success && Array.isArray(blasJson.data)) {

@@ -420,7 +420,7 @@ const BLOListPage = () => {
     };
 
     // Load booth polygons filtered by user access (like booth CRUD page)
-    const loadBoothPolygons = async () => {
+    const loadBoothPolygons = async (currentFilters = appliedFilters) => {
         try {
             const headers = getAuthHeaders();
             
@@ -451,8 +451,20 @@ const BLOListPage = () => {
 
             console.log('📍 Filtered booths for user access:', boothsToUse.length, 'out of', json.data.length);
 
-            // Fetch BLOs to get list of booths with data
-            const blosRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/blos?all=true&limit=50000`, { headers });
+            // Fetch BLOs to get list of booths with data, applying filters
+            let blosUrl = `${import.meta.env.VITE_APP_API_URL}/blos?all=true&limit=50000`;
+            if (currentFilters.state_id) blosUrl += `&state_id=${encodeURIComponent(currentFilters.state_id)}`;
+            if (currentFilters.division_id) blosUrl += `&division_id=${encodeURIComponent(currentFilters.division_id)}`;
+            if (currentFilters.parliament_id) blosUrl += `&parliament_id=${encodeURIComponent(currentFilters.parliament_id)}`;
+            if (currentFilters.assembly_id) blosUrl += `&assembly_id=${encodeURIComponent(currentFilters.assembly_id)}`;
+            if (currentFilters.block_id) blosUrl += `&block_id=${encodeURIComponent(currentFilters.block_id)}`;
+            if (currentFilters.booth_id) blosUrl += `&booth_id=${encodeURIComponent(currentFilters.booth_id)}`;
+            if (currentFilters.blo_name) blosUrl += `&blo_name=${encodeURIComponent(currentFilters.blo_name)}`;
+            if (currentFilters.contact_number) blosUrl += `&contact_number=${encodeURIComponent(currentFilters.contact_number)}`;
+            if (currentFilters.designation) blosUrl += `&designation=${encodeURIComponent(currentFilters.designation)}`;
+            if (currentFilters.election_year_id) blosUrl += `&election_year_id=${encodeURIComponent(currentFilters.election_year_id)}`;
+            
+            const blosRes = await fetch(blosUrl, { headers });
             const blosJson = await blosRes.json();
             const boothsWithBLO = new Set();
             if (blosJson.success && Array.isArray(blosJson.data)) {
@@ -680,6 +692,8 @@ const BLOListPage = () => {
     const applyFilters = () => {
         setAppliedFilters(tempFilters);
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        // Reload polygons with applied filters
+        loadBoothPolygons(tempFilters);
     };
 
     const clearFilters = () => {
@@ -699,6 +713,8 @@ const BLOListPage = () => {
         setAppliedFilters(emptyFilters);
         setGlobalFilter('');
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        // Reload polygons with cleared filters
+        loadBoothPolygons(emptyFilters);
     };
 
     // CSV Export (OTP-protected)

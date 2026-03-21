@@ -239,12 +239,21 @@ export default function BoothsListPage() {
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
     // Helper function to load and update booth polygons
-    const loadBoothPolygons = async () => {
+    const loadBoothPolygons = async (currentFilters = filters) => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
             
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`, { headers });
+            // Build query params with filters
+            const queryParams = [];
+            if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
+            if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
+            if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);
+            if (currentFilters.assembly_id) queryParams.push(`assembly=${encodeURIComponent(currentFilters.assembly_id)}`);
+            if (currentFilters.block_id) queryParams.push(`block=${encodeURIComponent(currentFilters.block_id)}`);
+            
+            const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000${queryString}`, { headers });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const json = await res.json();
             
@@ -323,13 +332,13 @@ export default function BoothsListPage() {
 
     // Load booth polygons on mount and when user hierarchy changes
     useEffect(() => {
-        loadBoothPolygons();
+        loadBoothPolygons(filters);
     }, [userHierarchy]);
 
     // Reload polygons when booths data changes (after update/delete)
     useEffect(() => {
         if (booths.length > 0) {
-            loadBoothPolygons();
+            loadBoothPolygons(filters);
         }
     }, [booths]);
 
@@ -676,23 +685,20 @@ export default function BoothsListPage() {
 
     const handleFilterApply = () => {
         fetchBooths(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+        loadBoothPolygons(filters);
     };
 
     const handleClearFilter = () => {
-        setFilters({
+        const clearedFilters = {
             state_id: '',
             division_id: '',
             parliament_id: '',
             assembly_id: '',
             block_id: ''
-        });
-        fetchBooths(pagination.pageIndex, pagination.pageSize, globalFilter, {
-            state_id: '',
-            division_id: '',
-            parliament_id: '',
-            assembly_id: '',
-            block_id: ''
-        });
+        };
+        setFilters(clearedFilters);
+        fetchBooths(pagination.pageIndex, pagination.pageSize, globalFilter, clearedFilters);
+        loadBoothPolygons(clearedFilters);
     };
 
     return (

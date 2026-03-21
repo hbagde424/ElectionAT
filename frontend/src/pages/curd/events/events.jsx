@@ -570,7 +570,7 @@ export default function EventListPage() {
 
     // Fetch booths with events to mark them on the map
     // Fetch booths with events to mark them on the map - respecting user hierarchy
-    const fetchBoothsWithEvents = async (selectedYear = yearFilter) => {
+    const fetchBoothsWithEvents = async (selectedYear = yearFilter, currentFilters = tempFilters) => {
         try {
             let url = '/events?all=true&limit=50000';
             if (selectedYear) url += `&year=${selectedYear}`;
@@ -594,6 +594,16 @@ export default function EventListPage() {
             if (userHierarchy?.booth) {
                 url += `&booth_id=${userHierarchy.booth._id || userHierarchy.booth}`;
             }
+            
+            // Apply table filters
+            if (currentFilters.state) url += `&state_id=${encodeURIComponent(currentFilters.state)}`;
+            if (currentFilters.division) url += `&division_id=${encodeURIComponent(currentFilters.division)}`;
+            if (currentFilters.parliament) url += `&parliament_id=${encodeURIComponent(currentFilters.parliament)}`;
+            if (currentFilters.assembly) url += `&assembly_id=${encodeURIComponent(currentFilters.assembly)}`;
+            if (currentFilters.block) url += `&block_id=${encodeURIComponent(currentFilters.block)}`;
+            if (currentFilters.booth) url += `&booth_id=${encodeURIComponent(currentFilters.booth)}`;
+            if (currentFilters.status) url += `&status=${encodeURIComponent(currentFilters.status)}`;
+            if (currentFilters.type) url += `&type=${encodeURIComponent(currentFilters.type)}`;
             
             const eventsRes = await axiosServices.get(url);
             const eventsList = eventsRes?.data?.data || [];
@@ -670,7 +680,7 @@ export default function EventListPage() {
     };
 
     // Load booth polygons by block name or id (tries multiple backend endpoints)
-    const loadBoothPolygons = async (blockInput) => {
+    const loadBoothPolygons = async (blockInput, currentFilters = tempFilters) => {
         if (!blockInput) {
             setMapError('Please select a Block');
             return;
@@ -680,8 +690,8 @@ export default function EventListPage() {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            // Fetch booths with events in parallel
-            fetchBoothsWithEvents(yearFilter);
+            // Fetch booths with events in parallel, applying filters
+            fetchBoothsWithEvents(yearFilter, currentFilters);
 
             // If user selected ALL blocks, fetch all polygons (large result)
             if (blockInput === 'ALL') {
@@ -2117,6 +2127,8 @@ export default function EventListPage() {
                             setSelectedStatus(tempFilters.status);
                             setSelectedType(tempFilters.type);
                             setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                            // Reload polygons with applied filters
+                            loadBoothPolygons(blockNumberInput, tempFilters);
                         }}
                     >
                         Apply
@@ -2148,6 +2160,20 @@ export default function EventListPage() {
                             setSelectedStatus('');
                             setSelectedType('');
                             setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                            // Reload polygons with cleared filters
+                            loadBoothPolygons(blockNumberInput, {
+                                state: '',
+                                division: '',
+                                parliament: '',
+                                assembly: '',
+                                block: '',
+                                booth: '',
+                                panchayat: '',
+                                village: '',
+                                falliya: '',
+                                status: '',
+                                type: ''
+                            });
                         }}
                     >
                         Clear

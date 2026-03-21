@@ -216,12 +216,18 @@ export default function ParliamentsListPage() {
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
     // Helper function to load and update parliament polygons
-    const loadParliamentPolygons = async () => {
+    const loadParliamentPolygons = async (currentFilters = filters) => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
             
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?limit=10000`, { headers });
+            // Build query params with filters
+            const queryParams = [];
+            if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
+            if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
+            
+            const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments?limit=10000${queryString}`, { headers });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const json = await res.json();
             
@@ -291,12 +297,12 @@ export default function ParliamentsListPage() {
     };
 
     useEffect(() => {
-        loadParliamentPolygons();
+        loadParliamentPolygons(filters);
     }, [userHierarchy]);
 
     useEffect(() => {
         if (parliaments.length > 0) {
-            loadParliamentPolygons();
+            loadParliamentPolygons(filters);
         }
     }, [parliaments]);
 
@@ -616,17 +622,17 @@ export default function ParliamentsListPage() {
 
     const handleFilterApply = () => {
         fetchParliaments(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+        loadParliamentPolygons(filters);
     };
 
     const handleClearFilter = () => {
-        setFilters({
+        const clearedFilters = {
             state_id: '',
             division_id: ''
-        });
-        fetchParliaments(pagination.pageIndex, pagination.pageSize, globalFilter, {
-            state_id: '',
-            division_id: ''
-        });
+        };
+        setFilters(clearedFilters);
+        fetchParliaments(pagination.pageIndex, pagination.pageSize, globalFilter, clearedFilters);
+        loadParliamentPolygons(clearedFilters);
     };
 
     return (

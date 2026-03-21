@@ -9,7 +9,8 @@ const {
   uploadBoothPolygon,
   getBoothRelatedData,
   getBoothPolygons,
-  getBoothPolygonsByBlock
+  getBoothPolygonsByBlock,
+  getBoothPolygonsByBlockId
 } = require('../controllers/boothController');
 const { protect, authorize } = require('../middlewares/auth');
 const { getUserPermissionsAndHierarchy } = require('../middlewares/permissions');
@@ -96,6 +97,7 @@ const router = express.Router();
 router.get('/', getBooths);
 router.get('/polygons', getBoothPolygons);
 router.get('/polygons/block-number/:blockNumber', getBoothPolygonsByBlock);
+router.get('/polygons/block/:blockId', getBoothPolygonsByBlockId);
 
 /**
  * @swagger

@@ -64,7 +64,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
           return;
         }
         const [assemblyResponse, candidatesResponse] = await Promise.all([
-          fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons`, {
+          fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/polygons`, {
             headers: { Authorization: `Bearer ${token}` }
           }),
           fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates?all=true`, {
@@ -78,15 +78,22 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', onAssemblySelect, 
 
         // Normalize the assembly API response structure
         let features = [];
-        if (assemblyData.features) {
+        if (assemblyData.success && assemblyData.data && Array.isArray(assemblyData.data)) {
+          // Response format: { success: true, data: [{ type: 'FeatureCollection', features: [...] }] }
+          features = assemblyData.data[0]?.features || [];
+        } else if (assemblyData.features) {
           features = assemblyData.features;
-        } else if (assemblyData.data?.[0]?.features) {
-          features = assemblyData.data[0].features;
         } else if (Array.isArray(assemblyData) && assemblyData[0]?.features) {
           features = assemblyData[0].features;
         }
+        
+        console.log('≡ƒöì Assembly polygon data fetched:', {
+          totalFeatures: features.length,
+          responseFormat: assemblyData.success ? 'success format' : 'direct format'
+        });
+        
         if (features.length === 0) {
-          throw new Error('No assembly features found in response');
+          throw new Error('No assembly features found in response. Please ensure assemblies have polygon data uploaded.');
         }
 
         // Process winning candidates data

@@ -487,7 +487,7 @@ export default function GenderListPage() {
     };
 
     // Map: Load booth polygons filtered by user access (like booth CRUD page)
-    const loadBoothPolygons = async () => {
+    const loadBoothPolygons = async (currentFilters = tempFilters) => {
         try {
             const headers = getAuthHeaders();
             
@@ -518,8 +518,19 @@ export default function GenderListPage() {
 
             console.log('📍 Filtered booths for user access:', boothsToUse.length, 'out of', json.data.length);
 
-            // Fetch genders to get list of booths with data
-            const gendersRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/genders?all=true&limit=50000`, { headers });
+            // Fetch genders to get list of booths with data, applying filters
+            let gendersUrl = `${import.meta.env.VITE_APP_API_URL}/genders?all=true&limit=50000`;
+            if (currentFilters.state) gendersUrl += `&state=${encodeURIComponent(currentFilters.state)}`;
+            if (currentFilters.division) gendersUrl += `&division=${encodeURIComponent(currentFilters.division)}`;
+            if (currentFilters.parliament) gendersUrl += `&parliament=${encodeURIComponent(currentFilters.parliament)}`;
+            if (currentFilters.assembly) gendersUrl += `&assembly=${encodeURIComponent(currentFilters.assembly)}`;
+            if (currentFilters.block) gendersUrl += `&block=${encodeURIComponent(currentFilters.block)}`;
+            if (currentFilters.booth) gendersUrl += `&booth=${encodeURIComponent(currentFilters.booth)}`;
+            if (currentFilters.panchayat) gendersUrl += `&panchayat=${encodeURIComponent(currentFilters.panchayat)}`;
+            if (currentFilters.village) gendersUrl += `&village=${encodeURIComponent(currentFilters.village)}`;
+            if (currentFilters.falliya) gendersUrl += `&falliya=${encodeURIComponent(currentFilters.falliya)}`;
+            
+            const gendersRes = await fetch(gendersUrl, { headers });
             const gendersJson = await gendersRes.json();
             const boothsWithGender = new Set();
             if (gendersJson.success && Array.isArray(gendersJson.data)) {
@@ -1680,6 +1691,8 @@ export default function GenderListPage() {
                             setSelectedVillage(tempFilters.village);
                             setSelectedFalliya(tempFilters.falliya);
                             setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                            // Reload polygons with applied filters
+                            loadBoothPolygons(tempFilters);
                         }}
                     >
                         Apply
@@ -1709,6 +1722,18 @@ export default function GenderListPage() {
                             setSelectedVillage('');
                             setSelectedFalliya('');
                             setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                            // Reload polygons with cleared filters
+                            loadBoothPolygons({
+                                state: '',
+                                division: '',
+                                parliament: '',
+                                assembly: '',
+                                block: '',
+                                booth: '',
+                                panchayat: '',
+                                village: '',
+                                falliya: ''
+                            });
                         }}
                     >
                         Clear

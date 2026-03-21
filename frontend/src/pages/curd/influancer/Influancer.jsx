@@ -484,7 +484,7 @@ export default function InfluencersListPage() {
     };
 
     // Load booth polygons filtered by user access (like booth CRUD page)
-    const loadBoothPolygons = async () => {
+    const loadBoothPolygons = async (currentFilters = tempFilters) => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -516,8 +516,20 @@ export default function InfluencersListPage() {
 
             console.log('📍 Filtered booths for user access:', boothsToUse.length, 'out of', json.data.length);
 
-            // Fetch influencers to get list of booths with data
-            const influencersRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/influencers?all=true&limit=50000`, { headers });
+            // Fetch influencers to get list of booths with data, applying filters
+            let influencersUrl = `${import.meta.env.VITE_APP_API_URL}/influencers?all=true&limit=50000`;
+            if (currentFilters.state) influencersUrl += `&state=${encodeURIComponent(currentFilters.state)}`;
+            if (currentFilters.division) influencersUrl += `&division=${encodeURIComponent(currentFilters.division)}`;
+            if (currentFilters.parliament) influencersUrl += `&parliament=${encodeURIComponent(currentFilters.parliament)}`;
+            if (currentFilters.assembly) influencersUrl += `&assembly=${encodeURIComponent(currentFilters.assembly)}`;
+            if (currentFilters.district) influencersUrl += `&district=${encodeURIComponent(currentFilters.district)}`;
+            if (currentFilters.block) influencersUrl += `&block=${encodeURIComponent(currentFilters.block)}`;
+            if (currentFilters.booth) influencersUrl += `&booth=${encodeURIComponent(currentFilters.booth)}`;
+            if (currentFilters.panchayat) influencersUrl += `&panchayat=${encodeURIComponent(currentFilters.panchayat)}`;
+            if (currentFilters.village) influencersUrl += `&village=${encodeURIComponent(currentFilters.village)}`;
+            if (currentFilters.falliya) influencersUrl += `&falliya=${encodeURIComponent(currentFilters.falliya)}`;
+            
+            const influencersRes = await fetch(influencersUrl, { headers });
             const influencersJson = await influencersRes.json();
             const boothsWithInfluencers = new Set();
             if (influencersJson.success && Array.isArray(influencersJson.data)) {
@@ -1801,6 +1813,8 @@ export default function InfluencersListPage() {
                             setSelectedVillage(tempFilters.village);
                             setSelectedFalliya(tempFilters.falliya);
                             setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                            // Reload polygons with applied filters
+                            loadBoothPolygons(tempFilters);
                         }}
                     >
                         Apply Filters
@@ -1832,6 +1846,19 @@ export default function InfluencersListPage() {
                             setSelectedVillage('');
                             setSelectedFalliya('');
                             setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                            // Reload polygons with cleared filters
+                            loadBoothPolygons({
+                                state: '',
+                                division: '',
+                                parliament: '',
+                                assembly: '',
+                                district: '',
+                                block: '',
+                                booth: '',
+                                panchayat: '',
+                                village: '',
+                                falliya: ''
+                            });
                         }}
                     >
                         Clear Filters

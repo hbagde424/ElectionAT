@@ -78,7 +78,7 @@ const icons = {
 
 const CRUDMenu = {
   id: 'CRUD',
-  title: <FormattedMessage id="CRUD" />,
+  title: 'CRUD',
   type: 'group',
   icon: icons.CURd,
   permissions: ['Users', 'Help Center', 'FAQ', 'state', 'division', 'parliament', 'assembly', 'block', 'booth'], // Any read permission shows this group

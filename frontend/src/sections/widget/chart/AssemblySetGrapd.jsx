@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   useTheme,
   useMediaQuery,
@@ -105,8 +105,8 @@ function ApexDonutChart({ data, loading }) {
     };
   }, [data]);
 
-  const { series, labels } = getPartyData();
-  const totalSeats = series.reduce((a, b) => a + b, 0);
+  const { series, labels, stats } = useMemo(() => getPartyData(), [getPartyData]);
+  const totalSeats = useMemo(() => series.reduce((a, b) => a + b, 0), [series]);
 
   const [options, setOptions] = useState(() =>
     getPieChartOptions(labels, totalSeats)

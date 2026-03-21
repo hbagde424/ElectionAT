@@ -81,12 +81,22 @@ function ChangeTheme({ themes, ...other }) {
 
   const loadAssemblyData = async (vsCode) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons/parliament/${vsCode}`);
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/polygons/parliament/${vsCode}`);
       if (!response.ok) throw new Error('Failed to fetch assembly data');
       const data = await response.json();
 
+      // Handle response format from CRUD assemblies endpoint
+      let features = [];
       if (data?.data?.[0]?.features) {
-        setGeoJsonData(data.data[0]);
+        features = data.data[0].features;
+      } else if (data?.features) {
+        features = data.features;
+      } else if (Array.isArray(data) && data[0]?.features) {
+        features = data[0].features;
+      }
+
+      if (features.length > 0) {
+        setGeoJsonData({ type: 'FeatureCollection', features });
         setCurrentLevel('assembly');
       }
     } catch (error) {

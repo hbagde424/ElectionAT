@@ -228,12 +228,19 @@ export default function AssembliesListPage() {
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
     // Helper function to load and update assembly polygons
-    const loadAssemblyPolygons = async () => {
+    const loadAssemblyPolygons = async (currentFilters = filters) => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
             
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?limit=10000`, { headers });
+            // Build query params with filters
+            const queryParams = [];
+            if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
+            if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
+            if (currentFilters.parliament_id) queryParams.push(`parliament=${encodeURIComponent(currentFilters.parliament_id)}`);
+            
+            const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies?limit=10000${queryString}`, { headers });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const json = await res.json();
             
@@ -296,12 +303,12 @@ export default function AssembliesListPage() {
     };
 
     useEffect(() => {
-        loadAssemblyPolygons();
+        loadAssemblyPolygons(filters);
     }, [userHierarchy]);
 
     useEffect(() => {
         if (assemblies.length > 0) {
-            loadAssemblyPolygons();
+            loadAssemblyPolygons(filters);
         }
     }, [assemblies]);
 
@@ -631,19 +638,18 @@ export default function AssembliesListPage() {
 
     const handleFilterApply = () => {
         fetchAssemblies(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+        loadAssemblyPolygons(filters);
     };
 
     const handleClearFilter = () => {
-        setFilters({
+        const clearedFilters = {
             state_id: '',
             division_id: '',
             parliament_id: ''
-        });
-        fetchAssemblies(pagination.pageIndex, pagination.pageSize, globalFilter, {
-            state_id: '',
-            division_id: '',
-            parliament_id: ''
-        });
+        };
+        setFilters(clearedFilters);
+        fetchAssemblies(pagination.pageIndex, pagination.pageSize, globalFilter, clearedFilters);
+        loadAssemblyPolygons(clearedFilters);
     };
 
     return (

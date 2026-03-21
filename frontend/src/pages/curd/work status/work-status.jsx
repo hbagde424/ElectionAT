@@ -235,7 +235,7 @@ export default function WorkStatusListPage() {
     // Refresh markers when year filter changes
     useEffect(() => {
         if (boothGeoJSON && yearFilter !== undefined) {
-            fetchBoothsWithWorkStatus(yearFilter);
+            fetchBoothsWithWorkStatus(yearFilter, filters);
             setPagination(prev => ({ ...prev, pageIndex: 0 }));
         }
     }, [yearFilter]);
@@ -391,6 +391,8 @@ export default function WorkStatusListPage() {
         setFilters(tempFilters);
         setPagination({ pageIndex: 0, pageSize: 10 });
         fetchWorkStatuses(0, 10, globalFilter, tempFilters);
+        // Reload polygons with applied filters
+        loadBoothPolygonsByBlockNumber(blockNumberInput, tempFilters);
     };
 
     const handleClearFilters = () => {
@@ -408,6 +410,8 @@ export default function WorkStatusListPage() {
         setTempFilters(emptyFilters);
         setPagination({ pageIndex: 0, pageSize: 10 });
         fetchWorkStatuses(0, 10, globalFilter, emptyFilters);
+        // Reload polygons with cleared filters
+        loadBoothPolygonsByBlockNumber(blockNumberInput, emptyFilters);
     };
 
     const fetchAllWorkStatusesForFilters = async () => {
@@ -535,11 +539,23 @@ export default function WorkStatusListPage() {
     };
 
     // Fetch booths with work status to mark them on the map
-    const fetchBoothsWithWorkStatus = async (selectedYear = yearFilter) => {
+    const fetchBoothsWithWorkStatus = async (selectedYear = yearFilter, currentFilters = filters) => {
         try {
             const headers = getAuthHeaders();
             let url = `${import.meta.env.VITE_APP_API_URL}/work-status?all=true&limit=50000`;
             if (selectedYear) url += `&year=${selectedYear}`;
+            
+            // Apply filters to the work-status query
+            if (currentFilters.state_id) url += `&state=${encodeURIComponent(currentFilters.state_id)}`;
+            if (currentFilters.district_id) url += `&district=${encodeURIComponent(currentFilters.district_id)}`;
+            if (currentFilters.division_id) url += `&division=${encodeURIComponent(currentFilters.division_id)}`;
+            if (currentFilters.parliament_id) url += `&parliament=${encodeURIComponent(currentFilters.parliament_id)}`;
+            if (currentFilters.assembly_id) url += `&assembly=${encodeURIComponent(currentFilters.assembly_id)}`;
+            if (currentFilters.block_id) url += `&block=${encodeURIComponent(currentFilters.block_id)}`;
+            if (currentFilters.booth_id) url += `&booth=${encodeURIComponent(currentFilters.booth_id)}`;
+            if (currentFilters.workType) url += `&workType=${encodeURIComponent(currentFilters.workType)}`;
+            if (currentFilters.status) url += `&status=${encodeURIComponent(currentFilters.status)}`;
+            
             const workStatusRes = await fetch(url, { headers });
             const workStatusJson = await workStatusRes.json();
             if (workStatusJson.success && Array.isArray(workStatusJson.data)) {
@@ -593,7 +609,7 @@ export default function WorkStatusListPage() {
         }
     };
 
-    const loadBoothPolygonsByBlockNumber = async (blockNumberVal) => {
+    const loadBoothPolygonsByBlockNumber = async (blockNumberVal, currentFilters = filters) => {
         if (!blockNumberVal) {
             setMapError('Please enter Block Number');
             return;
@@ -602,8 +618,8 @@ export default function WorkStatusListPage() {
         try {
             const headers = getAuthHeaders();
 
-            // Fetch booths with work status in parallel
-            fetchBoothsWithWorkStatus(yearFilter);
+            // Fetch booths with work status in parallel, applying filters
+            fetchBoothsWithWorkStatus(yearFilter, currentFilters);
 
             // Support fetching ALL polygons (could be large)
             if (blockNumberVal === 'ALL') {

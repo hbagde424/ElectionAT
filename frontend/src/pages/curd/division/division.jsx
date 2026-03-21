@@ -340,12 +340,17 @@ export default function DivisionListPage() {
     };
 
     // Helper function to load and update division polygons
-    const loadDivisionPolygons = async () => {
+    const loadDivisionPolygons = async (currentStateFilter = stateFilter) => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
             
-            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?limit=10000`, { headers });
+            // Build query params with filters
+            const queryParams = [];
+            if (currentStateFilter) queryParams.push(`state=${encodeURIComponent(currentStateFilter)}`);
+            
+            const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?limit=10000${queryString}`, { headers });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const json = await res.json();
             
@@ -424,8 +429,8 @@ export default function DivisionListPage() {
 
     // Load division polygons from divisions table - filtered by user hierarchy
     useEffect(() => {
-        loadDivisionPolygons();
-    }, [userHierarchy]);
+        loadDivisionPolygons(stateFilter);
+    }, [userHierarchy, stateFilter]);
 
     // Reset to first page when searching or filtering
     useEffect(() => {

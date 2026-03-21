@@ -55,7 +55,7 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
         setLoading(true);
 
         const [assemblyResponse, predictionResponse] = await Promise.all([
-          fetch(`${import.meta.env.VITE_APP_API_URL}/assembly-polygons`),
+          fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/polygons`),
           fetch(`${import.meta.env.VITE_APP_API_URL}/winning-candidates/predict/2028`)
         ]);
 
@@ -65,7 +65,16 @@ function AssemblyConstituencyMap({ themes, selectedYear = '', ...other }) {
         const assemblyDataJson = await assemblyResponse.json();
         const predictionData = await predictionResponse.json();
 
-        const features = extractFeatures(assemblyDataJson);
+        // Extract features from polygon endpoint response
+        let features = [];
+        if (assemblyDataJson.success && assemblyDataJson.data && Array.isArray(assemblyDataJson.data)) {
+          // Response format: { success: true, data: [{ type: 'FeatureCollection', features: [...] }] }
+          features = assemblyDataJson.data[0]?.features || [];
+        } else if (assemblyDataJson.features) {
+          features = assemblyDataJson.features;
+        } else if (Array.isArray(assemblyDataJson) && assemblyDataJson[0]?.features) {
+          features = assemblyDataJson[0].features;
+        }
         if (!features.length) throw new Error('No assembly features found');
 
         // Map predictions by assembly_id (lowercase, trimmed)

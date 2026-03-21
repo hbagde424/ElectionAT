@@ -448,7 +448,7 @@ export default function GovernmentsListPage() {
     };
 
     // Load booth polygons filtered by user access (like booth CRUD page)
-    const loadBoothPolygons = async () => {
+    const loadBoothPolygons = async (currentFilters = tempFilters) => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -480,8 +480,20 @@ export default function GovernmentsListPage() {
 
             console.log('📍 Filtered booths for user access:', boothsToUse.length, 'out of', json.data.length);
 
-            // Fetch government schemes to get list of booths with data
-            const schemesRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/governments?all=true&limit=50000`, { headers });
+            // Fetch government schemes to get list of booths with data, applying filters
+            let schemesUrl = `${import.meta.env.VITE_APP_API_URL}/governments?all=true&limit=50000`;
+            if (currentFilters.state) schemesUrl += `&state=${encodeURIComponent(currentFilters.state)}`;
+            if (currentFilters.division) schemesUrl += `&division=${encodeURIComponent(currentFilters.division)}`;
+            if (currentFilters.parliament) schemesUrl += `&parliament=${encodeURIComponent(currentFilters.parliament)}`;
+            if (currentFilters.assembly) schemesUrl += `&assembly=${encodeURIComponent(currentFilters.assembly)}`;
+            if (currentFilters.block) schemesUrl += `&block=${encodeURIComponent(currentFilters.block)}`;
+            if (currentFilters.booth) schemesUrl += `&booth=${encodeURIComponent(currentFilters.booth)}`;
+            if (currentFilters.panchayat) schemesUrl += `&panchayat=${encodeURIComponent(currentFilters.panchayat)}`;
+            if (currentFilters.village) schemesUrl += `&village=${encodeURIComponent(currentFilters.village)}`;
+            if (currentFilters.falliya) schemesUrl += `&falliya=${encodeURIComponent(currentFilters.falliya)}`;
+            if (currentFilters.type) schemesUrl += `&type=${encodeURIComponent(currentFilters.type)}`;
+            
+            const schemesRes = await fetch(schemesUrl, { headers });
             const schemesJson = await schemesRes.json();
             const boothsWithSchemes = new Set();
             if (schemesJson.success && Array.isArray(schemesJson.data)) {
@@ -1679,6 +1691,8 @@ export default function GovernmentsListPage() {
                             setSelectedFalliya(tempFilters.falliya);
                             setSelectedType(tempFilters.type);
                             setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                            // Reload polygons with applied filters
+                            loadBoothPolygons(tempFilters);
                         }}
                     >
                         Apply Filters
@@ -1710,6 +1724,19 @@ export default function GovernmentsListPage() {
                             setSelectedFalliya('');
                             setSelectedType('');
                             setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                            // Reload polygons with cleared filters
+                            loadBoothPolygons({
+                                state: '',
+                                division: '',
+                                parliament: '',
+                                assembly: '',
+                                block: '',
+                                booth: '',
+                                panchayat: '',
+                                village: '',
+                                falliya: '',
+                                type: ''
+                            });
                         }}
                     >
                         Clear Filters

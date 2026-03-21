@@ -333,7 +333,7 @@ const SamitiListPage = () => {
     }, [pagination.pageIndex, pagination.pageSize, globalFilter, appliedFilters, yearFilter]);
 
     // Fetch booths that have samiti data
-    const fetchBoothsWithSamiti = async (selectedYear = yearFilter) => {
+    const fetchBoothsWithSamiti = async (selectedYear = yearFilter, currentFilters = filterValues) => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -342,14 +342,14 @@ const SamitiListPage = () => {
             const params = new URLSearchParams();
             params.set('all', 'true');
             // include side-panel applied filters so markers reflect currently-applied filters
-            if (appliedFilters.state) params.set('state_id', appliedFilters.state);
-            if (appliedFilters.division) params.set('division_id', appliedFilters.division);
-            if (appliedFilters.parliament) params.set('parliament_id', appliedFilters.parliament);
-            if (appliedFilters.assembly) params.set('assembly_id', appliedFilters.assembly);
-            if (appliedFilters.block) params.set('block_id', appliedFilters.block);
-            if (appliedFilters.booth) params.set('booth_id', appliedFilters.booth);
-            if (appliedFilters.village) params.set('village', appliedFilters.village);
-            if (appliedFilters.falia) params.set('falia', appliedFilters.falia);
+            if (currentFilters.state) params.set('state_id', currentFilters.state);
+            if (currentFilters.division) params.set('division_id', currentFilters.division);
+            if (currentFilters.parliament) params.set('parliament_id', currentFilters.parliament);
+            if (currentFilters.assembly) params.set('assembly_id', currentFilters.assembly);
+            if (currentFilters.block) params.set('block_id', currentFilters.block);
+            if (currentFilters.booth) params.set('booth_id', currentFilters.booth);
+            if (currentFilters.village) params.set('village', currentFilters.village);
+            if (currentFilters.falia) params.set('falia', currentFilters.falia);
             if (selectedYear) params.set('year', selectedYear);
 
             const url = `${apiUrl}/samitis?${params.toString()}`;
@@ -445,7 +445,7 @@ const SamitiListPage = () => {
     };
 
     // Load booth polygons by block
-    const loadBoothPolygons = async (blockInput) => {
+    const loadBoothPolygons = async (blockInput, currentFilters = filterValues) => {
         if (!blockInput) {
             setMapError('Please select a Block');
             return;
@@ -455,7 +455,7 @@ const SamitiListPage = () => {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            await fetchBoothsWithSamiti(yearFilter);
+            await fetchBoothsWithSamiti(yearFilter, currentFilters);
 
             if (blockInput === 'ALL') {
                 const apiUrl = import.meta.env.VITE_APP_API_URL || '';
@@ -658,6 +658,8 @@ const SamitiListPage = () => {
     const handleApplyFilters = () => {
         setAppliedFilters(filterValues);
         setPagination({ pageIndex: 0, pageSize: 10 });
+        // Reload polygons with applied filters
+        loadBoothPolygons(blockNumberInput, filterValues);
     };
 
     const handleClearFilters = () => {
@@ -674,6 +676,8 @@ const SamitiListPage = () => {
         setFilterValues(emptyFilters);
         setAppliedFilters(emptyFilters);
         setPagination({ pageIndex: 0, pageSize: 10 });
+        // Reload polygons with cleared filters
+        loadBoothPolygons(blockNumberInput, emptyFilters);
     };
 
     // Handle cascading filter changes

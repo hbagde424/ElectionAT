@@ -146,96 +146,110 @@ export default function BlocksListPage() {
         fetchAllBlocksForFilters();
     }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
 
-    // Load block polygons from blocks table - filtered by user hierarchy
-    useEffect(() => {
-        (async () => {
-            try {
-                const token = localStorage.getItem('serviceToken');
-                const headers = token ? { Authorization: `Bearer ${token}` } : {};
-                
-                const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/blocks?limit=10000`, { headers });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const json = await res.json();
-                
-                if (!json.success || !Array.isArray(json.data)) {
-                    throw new Error('Invalid response format');
-                }
+    // Load block polygons from blocks table - filtered by user hierarchy and current filters
+    const loadBlockPolygons = async (currentFilters = filters) => {
+        try {
+            const token = localStorage.getItem('serviceToken');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            
+            // Build query params with filters
+            const queryParams = [];
+            if (currentFilters.state_id) queryParams.push(`state=${encodeURIComponent(currentFilters.state_id)}`);
+            if (currentFilters.division_id) queryParams.push(`division=${encodeURIComponent(currentFilters.division_id)}`);
+            
+            const queryString = queryParams.length > 0 ? `&${queryParams.join('&')}` : '';
+            const res = await fetch(`${import.meta.env.VITE_APP_API_URL}/blocks?limit=10000${queryString}`, { headers });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            
+            if (!json.success || !Array.isArray(json.data)) {
+                throw new Error('Invalid response format');
+            }
 
-                // Filter blocks based on user hierarchy
-                let blocksToUse = json.data;
-                if (userHierarchy?.block) {
-                    // User has block-level access - show only their block
-                    blocksToUse = json.data.filter(b => String(b._id) === String(userHierarchy.block._id || userHierarchy.block));
-                } else if (userHierarchy?.assembly) {
-                    // User has assembly-level access - show blocks in their assembly
-                    blocksToUse = json.data.filter(b => String(b.assembly_id?._id || b.assembly_id) === String(userHierarchy.assembly._id || userHierarchy.assembly));
-                } else if (userHierarchy?.parliament) {
-                    // User has parliament-level access - show blocks in their parliament
-                    blocksToUse = json.data.filter(b => String(b.parliament_id?._id || b.parliament_id) === String(userHierarchy.parliament._id || userHierarchy.parliament));
-                } else if (userHierarchy?.division) {
-                    // User has division-level access - show blocks in their division
-                    blocksToUse = json.data.filter(b => String(b.division_id?._id || b.division_id) === String(userHierarchy.division._id || userHierarchy.division));
-                } else if (userHierarchy?.state) {
-                    // User has state-level access - show blocks in their state
-                    blocksToUse = json.data.filter(b => String(b.state_id?._id || b.state_id) === String(userHierarchy.state._id || userHierarchy.state));
-                }
-                // If no hierarchy, show all blocks (superAdmin)
+            // Filter blocks based on user hierarchy
+            let blocksToUse = json.data;
+            if (userHierarchy?.block) {
+                // User has block-level access - show only their block
+                blocksToUse = json.data.filter(b => String(b._id) === String(userHierarchy.block._id || userHierarchy.block));
+            } else if (userHierarchy?.assembly) {
+                // User has assembly-level access - show blocks in their assembly
+                blocksToUse = json.data.filter(b => String(b.assembly_id?._id || b.assembly_id) === String(userHierarchy.assembly._id || userHierarchy.assembly));
+            } else if (userHierarchy?.parliament) {
+                // User has parliament-level access - show blocks in their parliament
+                blocksToUse = json.data.filter(b => String(b.parliament_id?._id || b.parliament_id) === String(userHierarchy.parliament._id || userHierarchy.parliament));
+            } else if (userHierarchy?.division) {
+                // User has division-level access - show blocks in their division
+                blocksToUse = json.data.filter(b => String(b.division_id?._id || b.division_id) === String(userHierarchy.division._id || userHierarchy.division));
+            } else if (userHierarchy?.state) {
+                // User has state-level access - show blocks in their state
+                blocksToUse = json.data.filter(b => String(b.state_id?._id || b.state_id) === String(userHierarchy.state._id || userHierarchy.state));
+            }
+            // If no hierarchy, show all blocks (superAdmin)
 
-                // Extract polygons from blocks that have polygon data
-                const features = [];
-                blocksToUse.forEach(block => {
-                    if (block.polygon) {
-                        let featureToAdd = null;
-                        
-                        if (block.polygon.type === 'Feature') {
-                            featureToAdd = {
-                                ...block.polygon,
+            // Extract polygons from blocks that have polygon data
+            const features = [];
+            blocksToUse.forEach(block => {
+                if (block.polygon) {
+                    let featureToAdd = null;
+                    
+                    if (block.polygon.type === 'Feature') {
+                        featureToAdd = {
+                            ...block.polygon,
+                            properties: {
+                                ...block.polygon.properties,
+                                block_id: block._id,
+                                block_name: block.name,
+                                block_no: block.block_no
+                            }
+                        };
+                    } else if (block.polygon.type === 'FeatureCollection' && Array.isArray(block.polygon.features)) {
+                        block.polygon.features.forEach(feat => {
+                            features.push({
+                                ...feat,
                                 properties: {
-                                    ...block.polygon.properties,
+                                    ...feat.properties,
                                     block_id: block._id,
                                     block_name: block.name,
                                     block_no: block.block_no
                                 }
-                            };
-                        } else if (block.polygon.type === 'FeatureCollection' && Array.isArray(block.polygon.features)) {
-                            block.polygon.features.forEach(feat => {
-                                features.push({
-                                    ...feat,
-                                    properties: {
-                                        ...feat.properties,
-                                        block_id: block._id,
-                                        block_name: block.name,
-                                        block_no: block.block_no
-                                    }
-                                });
                             });
-                            return;
-                        }
-                        
-                        if (featureToAdd) {
-                            features.push(featureToAdd);
-                        }
+                        });
+                        return;
                     }
-                });
-
-                if (!features.length) {
-                    setMapError('No blocks with polygon data available');
-                    setAllBlockGeoJSON(null);
-                    setBlockGeoJSON(null);
-                } else {
-                    const geoJSON = { type: 'FeatureCollection', features };
-                    setAllBlockGeoJSON(geoJSON);
-                    setBlockGeoJSON(geoJSON);
-                    setMapError('');
+                    
+                    if (featureToAdd) {
+                        features.push(featureToAdd);
+                    }
                 }
-            } catch (e) {
-                console.error('Failed to load block polygons:', e);
-                setMapError(`Failed to load polygon data: ${e.message}`);
+            });
+
+            if (!features.length) {
+                setMapError('No blocks with polygon data available');
                 setAllBlockGeoJSON(null);
                 setBlockGeoJSON(null);
+            } else {
+                const geoJSON = { type: 'FeatureCollection', features };
+                setAllBlockGeoJSON(geoJSON);
+                setBlockGeoJSON(geoJSON);
+                setMapError('');
             }
-        })();
+        } catch (e) {
+            console.error('Failed to load block polygons:', e);
+            setMapError(`Failed to load polygon data: ${e.message}`);
+            setAllBlockGeoJSON(null);
+            setBlockGeoJSON(null);
+        }
+    };
+
+    useEffect(() => {
+        loadBlockPolygons(filters);
     }, [userHierarchy]);
+
+    useEffect(() => {
+        if (blocks.length > 0) {
+            loadBlockPolygons(filters);
+        }
+    }, [blocks]);
 
     const filterOptions = useFilterOptionsFromData(allBlocks, {
         states: { field: 'state_id', nameField: 'name' },
@@ -697,21 +711,19 @@ export default function BlocksListPage() {
 
     const handleFilterApply = () => {
         fetchBlocks(pagination.pageIndex, pagination.pageSize, globalFilter, filters);
+        loadBlockPolygons(filters);
     };
 
     const handleClearFilter = () => {
-        setFilters({
+        const clearedFilters = {
             state_id: '',
             division_id: '',
             parliament_id: '',
             assembly_id: ''
-        });
-        fetchBlocks(pagination.pageIndex, pagination.pageSize, globalFilter, {
-            state_id: '',
-            division_id: '',
-            parliament_id: '',
-            assembly_id: ''
-        });
+        };
+        setFilters(clearedFilters);
+        fetchBlocks(pagination.pageIndex, pagination.pageSize, globalFilter, clearedFilters);
+        loadBlockPolygons(clearedFilters);
     };
 
     return (

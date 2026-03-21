@@ -256,6 +256,8 @@ export default function CodingListPage() {
             .filter(([_, value]) => value !== '')
             .map(([id, value]) => ({ id, value }));
         setColumnFilters(newColumnFilters);
+        // Reload polygons with applied filters
+        loadBoothPolygons(filters);
     };
 
     const handleClearFilters = () => {
@@ -278,6 +280,18 @@ export default function CodingListPage() {
         setFilteredBlocks([]);
         setFilteredPanchayats([]);
         setFilteredVillages([]);
+        
+        // Reload polygons with cleared filters
+        loadBoothPolygons({
+            state: '',
+            division: '',
+            parliament: '',
+            assembly: '',
+            block: '',
+            panchayat: '',
+            village: '',
+            falliya: ''
+        });
         setFilteredFalliyas([]);
     };
 
@@ -400,7 +414,7 @@ export default function CodingListPage() {
 
     // Load booth polygons by block name/id or ALL
     // Load booth polygons filtered by user access (like booth CRUD page)
-    const loadBoothPolygons = async () => {
+    const loadBoothPolygons = async (currentFilters = filters) => {
         try {
             const token = localStorage.getItem('serviceToken');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -432,8 +446,18 @@ export default function CodingListPage() {
 
             console.log('📍 Filtered booths for user access:', boothsToUse.length, 'out of', json.data.length);
 
-            // Fetch codings to get list of booths with data
-            const codingsRes = await fetch(`${import.meta.env.VITE_APP_API_URL}/codings?all=true&limit=50000`, { headers });
+            // Fetch codings to get list of booths with data, applying filters
+            let codingsUrl = `${import.meta.env.VITE_APP_API_URL}/codings?all=true&limit=50000`;
+            if (currentFilters.state) codingsUrl += `&state=${encodeURIComponent(currentFilters.state)}`;
+            if (currentFilters.division) codingsUrl += `&division=${encodeURIComponent(currentFilters.division)}`;
+            if (currentFilters.parliament) codingsUrl += `&parliament=${encodeURIComponent(currentFilters.parliament)}`;
+            if (currentFilters.assembly) codingsUrl += `&assembly=${encodeURIComponent(currentFilters.assembly)}`;
+            if (currentFilters.block) codingsUrl += `&block=${encodeURIComponent(currentFilters.block)}`;
+            if (currentFilters.panchayat) codingsUrl += `&panchayat=${encodeURIComponent(currentFilters.panchayat)}`;
+            if (currentFilters.village) codingsUrl += `&village=${encodeURIComponent(currentFilters.village)}`;
+            if (currentFilters.falliya) codingsUrl += `&falliya=${encodeURIComponent(currentFilters.falliya)}`;
+            
+            const codingsRes = await fetch(codingsUrl, { headers });
             const codingsJson = await codingsRes.json();
             const boothsWithCoding = new Set();
             if (codingsJson.success && Array.isArray(codingsJson.data)) {
