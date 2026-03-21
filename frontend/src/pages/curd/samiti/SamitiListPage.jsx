@@ -397,53 +397,6 @@ const SamitiListPage = () => {
         }
     };
 
-    // Auto zoom to fit filtered polygons (only booths with samiti data)
-    const autoZoomToFilteredPolygons = () => {
-        setTimeout(() => {
-            try {
-                const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-                if (!map || !boothGeoJSON?.features?.length) return;
-                
-                // Filter features to only include booths with samiti data
-                const filteredFeatures = boothGeoJSON.features.filter(feature => {
-                    const props = feature.properties || {};
-                    const boothId = props._id || props.id || props.booth_id;
-                    const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number;
-                    
-                    const hasData = (
-                        (boothId && boothsWithSamiti.ids.has(String(boothId))) ||
-                        (boothNo && boothsWithSamiti.numbers.has(String(boothNo).trim().toLowerCase()))
-                    );
-                    
-                    return hasData;
-                });
-
-                if (filteredFeatures.length === 0) return;
-
-                const coords = [];
-                filteredFeatures.forEach(f => {
-                    const geom = f.geometry;
-                    if (!geom) return;
-                    const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
-                    if (geom.type === 'Polygon') collect(geom.coordinates);
-                    if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
-                });
-                
-                if (coords.length) {
-                    const lons = coords.map(c => c[0]);
-                    const lats = coords.map(c => c[1]);
-                    const bounds = [
-                        [Math.min(...lons), Math.min(...lats)],
-                        [Math.max(...lons), Math.max(...lats)]
-                    ];
-                    map.fitBounds(bounds, { padding: 50, maxZoom: 15 });
-                }
-            } catch (err) {
-                console.error('Auto zoom error:', err);
-            }
-        }, 300);
-    };
-
     // Load booth polygons by block
     const loadBoothPolygons = async (blockInput) => {
         if (!blockInput) {
@@ -459,7 +412,7 @@ const SamitiListPage = () => {
 
             if (blockInput === 'ALL') {
                 const apiUrl = import.meta.env.VITE_APP_API_URL || '';
-                const url = `${apiUrl}/booths/polygons?limit=50000&page=1`;
+                const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
                 const resp = await fetch(url, { headers });
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const j = await resp.json();
@@ -501,8 +454,9 @@ const SamitiListPage = () => {
             }
 
             const candidates = [
-                `${import.meta.env.VITE_APP_API_URL}/booths/polygons/block/${encodeURIComponent(blockInput)}`,
-                `${import.meta.env.VITE_APP_API_URL}/booths/polygons?block=${encodeURIComponent(blockInput)}`
+                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block/${encodeURIComponent(blockInput)}`,
+                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${encodeURIComponent(blockInput)}`,
+                `${import.meta.env.VITE_APP_API_URL}/booth-polygons?block=${encodeURIComponent(blockInput)}`
             ];
             let json = null;
             for (const url of candidates) {
@@ -578,14 +532,6 @@ const SamitiListPage = () => {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [appliedFilters]);
-
-    // Auto zoom to filtered polygons when boothsWithSamiti updates
-    useEffect(() => {
-        if (boothGeoJSON && boothsWithSamiti.ids.size > 0) {
-            autoZoomToFilteredPolygons();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [boothsWithSamiti, boothGeoJSON]);
 
     // Fetch booth + samitis when a polygon is clicked
     const fetchBoothDetailsByPolygon = async (boothNo) => {
@@ -1206,26 +1152,7 @@ const SamitiListPage = () => {
                                     >
                                         <MapControl />
                                         {boothGeoJSON && (
-                                            <Source 
-                                                id="booth-source" 
-                                                type="geojson" 
-                                                data={{
-                                                    type: 'FeatureCollection',
-                                                    features: boothGeoJSON.features.filter(feature => {
-                                                        const props = feature.properties || {};
-                                                        const boothId = props._id || props.id || props.booth_id;
-                                                        const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number;
-                                                        
-                                                        // Check if this booth has samiti data
-                                                        const hasData = (
-                                                            (boothId && boothsWithSamiti.ids.has(String(boothId))) ||
-                                                            (boothNo && boothsWithSamiti.numbers.has(String(boothNo).trim().toLowerCase()))
-                                                        );
-                                                        
-                                                        return hasData;
-                                                    })
-                                                }}
-                                            >
+                                            <Source id="booth-source" type="geojson" data={boothGeoJSON}>
                                                 <Layer id="booth-fill" type="fill" paint={{ 'fill-color': '#1e88e5', 'fill-opacity': 0.25 }} />
                                                 <Layer id="booth-outline" type="line" paint={{ 'line-color': '#1565c0', 'line-width': 1 }} />
                                                 <Layer
@@ -1254,21 +1181,7 @@ const SamitiListPage = () => {
                                                 type="geojson" 
                                                 data={{
                                                     type: 'FeatureCollection',
-                                                    features: boothGeoJSON.features
-                                                        .filter(feature => {
-                                                            const props = feature.properties || {};
-                                                            const boothId = props._id || props.id || props.booth_id;
-                                                            const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number;
-                                                            
-                                                            // Only show markers for booths with samiti data
-                                                            const hasData = (
-                                                                (boothId && boothsWithSamiti.ids.has(String(boothId))) ||
-                                                                (boothNo && boothsWithSamiti.numbers.has(String(boothNo).trim().toLowerCase()))
-                                                            );
-                                                            
-                                                            return hasData;
-                                                        })
-                                                        .map(feature => {
+                                                    features: boothGeoJSON.features.map(feature => {
                                                         const props = feature.properties || {};
                                                         const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number || props.id || props.booth;
                                                         
@@ -1364,18 +1277,18 @@ const SamitiListPage = () => {
                                                 border: '2px solid #ffffff',
                                                 boxShadow: 1
                                             }} />
-                                            <Typography variant="caption">Booth with Samiti Data</Typography>
+                                            <Typography variant="caption">Has Samiti Data</Typography>
                                         </Stack>
                                         <Stack direction="row" spacing={1} alignItems="center">
                                             <Box sx={{ 
-                                                width: 24, 
+                                                width: 16, 
                                                 height: 16, 
-                                                backgroundColor: '#1e88e5',
-                                                opacity: 0.25,
-                                                border: '1px solid #1565c0',
+                                                borderRadius: '50%', 
+                                                backgroundColor: '#ef4444',
+                                                border: '2px solid #ffffff',
                                                 boxShadow: 1
                                             }} />
-                                            <Typography variant="caption">Booth Polygon</Typography>
+                                            <Typography variant="caption">No Samiti Data</Typography>
                                         </Stack>
                                     </Stack>
                                 </Paper>

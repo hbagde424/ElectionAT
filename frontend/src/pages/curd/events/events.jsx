@@ -117,7 +117,7 @@ export default function EventListPage() {
     const [mapError, setMapError] = useState('');
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] = useState(null);
-    const [boothsWithEvents, setBoothsWithEvents] = useState({ ids: new Set(), numbers: new Set() });
+    const [boothsWithEvents, setBoothsWithEvents] = useState(new Set());
     const mapRef = useRef(null);
     const mapboxToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN;
 
@@ -245,12 +245,8 @@ export default function EventListPage() {
                 seen.add(key);
 
                 const hasEvents = eventBoothNumberSet.has(boothNoNorm);
-                
-                // Only add markers for booths WITH events
-                if (hasEvents) {
-                    features.push({ type: 'Feature', geometry: { type: 'Point', coordinates }, properties: { ...props, hasEvents, _dedupeKey: key } });
-                    addedCentroids.push(coordinates);
-                }
+                features.push({ type: 'Feature', geometry: { type: 'Point', coordinates }, properties: { ...props, hasEvents, _dedupeKey: key } });
+                addedCentroids.push(coordinates);
                 continue;
             }
 
@@ -267,11 +263,8 @@ export default function EventListPage() {
             const propsBoothNo = normalizeBoothNo(props.booth_number || props.BoothNo || props.BoothNumber || props.boothNo);
             const hasEvents = propsBoothNo ? eventBoothNumberSet.has(propsBoothNo) : false;
 
-            // Only add markers for booths WITH events
-            if (hasEvents) {
-                features.push({ type: 'Feature', geometry: { type: 'Point', coordinates }, properties: { ...props, hasEvents, _dedupeKey: coordKey } });
-                addedCentroids.push(coordinates);
-            }
+            features.push({ type: 'Feature', geometry: { type: 'Point', coordinates }, properties: { ...props, hasEvents, _dedupeKey: coordKey } });
+            addedCentroids.push(coordinates);
         }
 
         return { type: 'FeatureCollection', features };
@@ -598,75 +591,19 @@ export default function EventListPage() {
             const eventsRes = await axiosServices.get(url);
             const eventsList = eventsRes?.data?.data || [];
             
-            // Create Sets of booth IDs and booth numbers that have events data
+            // Create a Set of booth IDs that have events data
             const boothIds = new Set();
-            const boothNumbers = new Set();
-            
             eventsList.forEach(event => {
-                // Collect booth ID
                 if (event.booth_id) {
                     const boothId = event.booth_id._id || event.booth_id;
                     boothIds.add(String(boothId));
-                    
-                    // If booth object contains booth_number, capture it too
-                    if (event.booth_id.booth_number !== undefined && event.booth_id.booth_number !== null) {
-                        boothNumbers.add(String(event.booth_id.booth_number).trim().toLowerCase());
-                    }
                 }
             });
-            
-            setBoothsWithEvents({ ids: boothIds, numbers: boothNumbers });
+            setBoothsWithEvents(boothIds);
             console.debug('[Events Map] Fetched booths with Events:', boothIds.size, 'year:', selectedYear || 'all');
         } catch (err) {
             console.warn('Failed to fetch booths with events:', err);
         }
-    };
-
-    // Auto zoom to fit filtered polygons (only booths with event data)
-    const autoZoomToFilteredPolygons = () => {
-        setTimeout(() => {
-            try {
-                const map = mapRef.current && (typeof mapRef.current.getMap === 'function' ? mapRef.current.getMap() : mapRef.current);
-                if (!map || !boothGeoJSON?.features?.length) return;
-                
-                // Filter features to only include booths with event data
-                const filteredFeatures = boothGeoJSON.features.filter(feature => {
-                    const props = feature.properties || {};
-                    const boothId = props._id || props.id || props.booth_id;
-                    const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number;
-                    
-                    const hasData = (
-                        (boothId && boothsWithEvents.ids.has(String(boothId))) ||
-                        (boothNo && boothsWithEvents.numbers.has(String(boothNo).trim().toLowerCase()))
-                    );
-                    
-                    return hasData;
-                });
-
-                if (filteredFeatures.length === 0) return;
-
-                const coords = [];
-                filteredFeatures.forEach(f => {
-                    const geom = f.geometry;
-                    if (!geom) return;
-                    const collect = (arr) => arr.forEach(pt => Array.isArray(pt[0]) ? collect(pt) : coords.push(pt));
-                    if (geom.type === 'Polygon') collect(geom.coordinates);
-                    if (geom.type === 'MultiPolygon') geom.coordinates.forEach(poly => collect(poly));
-                });
-                
-                if (coords.length) {
-                    const lons = coords.map(c => c[0]);
-                    const lats = coords.map(c => c[1]);
-                    const bounds = [
-                        [Math.min(...lons), Math.min(...lats)],
-                        [Math.max(...lons), Math.max(...lats)]
-                    ];
-                    map.fitBounds(bounds, { padding: 50, maxZoom: 15 });
-                }
-            } catch (err) {
-                console.error('Auto zoom error:', err);
-            }
-        }, 300);
     };
 
     // Load booth polygons by block name or id (tries multiple backend endpoints)
@@ -686,7 +623,7 @@ export default function EventListPage() {
             // If user selected ALL blocks, fetch all polygons (large result)
             if (blockInput === 'ALL') {
                 const apiUrl = import.meta.env.VITE_APP_API_URL || 'https://myhostmanager.co.in/backend/api';
-                const url = `${apiUrl}/booths/polygons?limit=50000&page=1`;
+                const url = `${apiUrl}/booth-polygons?limit=50000&page=1`;
                 const resp = await fetch(url, { headers });
 
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -731,8 +668,9 @@ export default function EventListPage() {
 
             // Try multiple endpoints in order until we get features
             const candidates = [
-                `${import.meta.env.VITE_APP_API_URL}/booths/polygons/block/${encodeURIComponent(blockInput)}`,
-                `${import.meta.env.VITE_APP_API_URL}/booths/polygons?block=${encodeURIComponent(blockInput)}`
+                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block/${encodeURIComponent(blockInput)}`,
+                `${import.meta.env.VITE_APP_API_URL}/booth-polygons/block-number/${encodeURIComponent(blockInput)}`,
+                `${import.meta.env.VITE_APP_API_URL}/booth-polygons?block=${encodeURIComponent(blockInput)}`
             ];
 
             let json = null;
@@ -806,14 +744,6 @@ export default function EventListPage() {
             setPagination(prev => ({ ...prev, pageIndex: 0 }));
         }
     }, [yearFilter]);
-
-    // Auto zoom to filtered polygons when boothsWithEvents updates
-    useEffect(() => {
-        if (boothGeoJSON && boothsWithEvents.ids.size > 0) {
-            autoZoomToFilteredPolygons();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [boothsWithEvents, boothGeoJSON]);
 
     // Fetch booth details and events when a polygon is clicked
     const fetchBoothDetailsByPolygon = async (boothNo) => {
@@ -1629,26 +1559,7 @@ export default function EventListPage() {
                             >
                                 <MapControl />
                                 {boothGeoJSON && (
-                                    <Source 
-                                        id="booth-source" 
-                                        type="geojson" 
-                                        data={{
-                                            type: 'FeatureCollection',
-                                            features: boothGeoJSON.features.filter(feature => {
-                                                const props = feature.properties || {};
-                                                const boothId = props._id || props.id || props.booth_id;
-                                                const boothNo = props.BoothNo || props.BoothNumber || props.boothNo || props.booth_number;
-                                                
-                                                // Check if this booth has event data (by ID or booth number)
-                                                const hasData = (
-                                                    (boothId && boothsWithEvents.ids.has(String(boothId))) ||
-                                                    (boothNo && boothsWithEvents.numbers.has(String(boothNo).trim().toLowerCase()))
-                                                );
-                                                
-                                                return hasData;
-                                            })
-                                        }}
-                                    >
+                                    <Source id="booth-source" type="geojson" data={boothGeoJSON}>
                                         <Layer
                                             id="booth-fill"
                                             type="fill"

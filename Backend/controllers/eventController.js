@@ -150,44 +150,24 @@ exports.getEvents = async (req, res, next) => {
       query = query.where('year').equals(parseInt(req.query.year));
     }
 
-    // Apply user hierarchy restriction when an authenticated user is present (array-based filtering)
+    // Apply user hierarchy restriction when an authenticated user is present
     // Precedence: booth -> block -> assembly -> parliament -> division -> state
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      
-      // Get the most specific access level (booth > block > assembly > parliament > division > state)
-      const boothIds = h.booth_ids && h.booth_ids.length > 0
-        ? h.booth_ids.map(b => b._id || b)
-        : [];
-      const blockIds = h.block_ids && h.block_ids.length > 0
-        ? h.block_ids.map(b => b._id || b)
-        : [];
-      const assemblyIds = h.assembly_ids && h.assembly_ids.length > 0
-        ? h.assembly_ids.map(a => a._id || a)
-        : [];
-      const parliamentIds = h.parliament_ids && h.parliament_ids.length > 0
-        ? h.parliament_ids.map(p => p._id || p)
-        : [];
-      const divisionIds = h.division_ids && h.division_ids.length > 0
-        ? h.division_ids.map(d => d._id || d)
-        : [];
-      const stateIds = h.state_ids && h.state_ids.length > 0
-        ? h.state_ids.map(s => s._id || s)
-        : [];
+      // Extract IDs from populated objects or direct ID values
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
 
-      if (boothIds.length > 0) {
-        query = query.where('booth_id').in(boothIds);
-      } else if (blockIds.length > 0) {
-        query = query.where('block_id').in(blockIds);
-      } else if (assemblyIds.length > 0) {
-        query = query.where('assembly_id').in(assemblyIds);
-      } else if (parliamentIds.length > 0) {
-        query = query.where('parliament_id').in(parliamentIds);
-      } else if (divisionIds.length > 0) {
-        query = query.where('division_id').in(divisionIds);
-      } else if (stateIds.length > 0) {
-        query = query.where('state_id').in(stateIds);
-      }
+      if (boothId) query = query.where('booth_id').equals(boothId);
+      else if (blockId) query = query.where('block_id').equals(blockId);
+      else if (assemblyId) query = query.where('assembly_id').equals(assemblyId);
+      else if (parliamentId) query = query.where('parliament_id').equals(parliamentId);
+      else if (divisionId) query = query.where('division_id').equals(divisionId);
+      else if (stateId) query = query.where('state_id').equals(stateId);
     }
 
     // Filter by date range
@@ -240,48 +220,25 @@ exports.getEvent = async (req, res, next) => {
       });
     }
 
-    // Enforce user hierarchy: only allow access if event is within user's scope (array-based)
+    // Enforce user hierarchy: only allow access if event is within user's scope
     if (req.user && req.user.role !== 'superAdmin' && req.userHierarchy) {
       const h = req.userHierarchy;
-      
-      // Get the most specific access level (booth > block > assembly > parliament > division > state)
-      const boothIds = h.booth_ids && h.booth_ids.length > 0
-        ? h.booth_ids.map(b => String(b._id || b))
-        : [];
-      const blockIds = h.block_ids && h.block_ids.length > 0
-        ? h.block_ids.map(b => String(b._id || b))
-        : [];
-      const assemblyIds = h.assembly_ids && h.assembly_ids.length > 0
-        ? h.assembly_ids.map(a => String(a._id || a))
-        : [];
-      const parliamentIds = h.parliament_ids && h.parliament_ids.length > 0
-        ? h.parliament_ids.map(p => String(p._id || p))
-        : [];
-      const divisionIds = h.division_ids && h.division_ids.length > 0
-        ? h.division_ids.map(d => String(d._id || d))
-        : [];
-      const stateIds = h.state_ids && h.state_ids.length > 0
-        ? h.state_ids.map(s => String(s._id || s))
-        : [];
+      // Extract IDs from populated objects or direct ID values
+      const boothId = h.booth?._id || h.booth;
+      const blockId = h.block?._id || h.block;
+      const assemblyId = h.assembly?._id || h.assembly;
+      const parliamentId = h.parliament?._id || h.parliament;
+      const divisionId = h.division?._id || h.division;
+      const stateId = h.state?._id || h.state;
 
-      // Check if event is within user's scope
-      let hasAccess = false;
+      const outOfScope = (boothId && event.booth_id && event.booth_id.toString() !== boothId.toString()) ||
+        (blockId && event.block_id && event.block_id.toString() !== blockId.toString()) ||
+        (assemblyId && event.assembly_id && event.assembly_id.toString() !== assemblyId.toString()) ||
+        (parliamentId && event.parliament_id && event.parliament_id.toString() !== parliamentId.toString()) ||
+        (divisionId && event.division_id && event.division_id.toString() !== divisionId.toString()) ||
+        (stateId && event.state_id && event.state_id.toString() !== stateId.toString());
 
-      if (boothIds.length > 0) {
-        hasAccess = event.booth_id && boothIds.includes(String(event.booth_id._id || event.booth_id));
-      } else if (blockIds.length > 0) {
-        hasAccess = event.block_id && blockIds.includes(String(event.block_id._id || event.block_id));
-      } else if (assemblyIds.length > 0) {
-        hasAccess = event.assembly_id && assemblyIds.includes(String(event.assembly_id._id || event.assembly_id));
-      } else if (parliamentIds.length > 0) {
-        hasAccess = event.parliament_id && parliamentIds.includes(String(event.parliament_id._id || event.parliament_id));
-      } else if (divisionIds.length > 0) {
-        hasAccess = event.division_id && divisionIds.includes(String(event.division_id._id || event.division_id));
-      } else if (stateIds.length > 0) {
-        hasAccess = event.state_id && stateIds.includes(String(event.state_id._id || event.state_id));
-      }
-
-      if (!hasAccess) {
+      if (outOfScope) {
         return res.status(403).json({ success: false, message: 'Forbidden: resource outside your geographic scope' });
       }
     }
