@@ -463,18 +463,28 @@ function HierarchicalMap({ onRegionClick }) {
             const winningParties = normalize(results[10]);
             const boothVotes = normalize(results[11]);
             
+            // Process gender data into aggregated stats
+            let genderStats = { male: 0, female: 0, others: 0, total: 0 };
+            if (genderArr && Array.isArray(genderArr)) {
+                genderArr.forEach(g => {
+                    genderStats.male += g.Male_Count || g.male || 0;
+                    genderStats.female += g.Female_Count || g.female || 0;
+                    genderStats.others += g.others_Count || g.others || 0;
+                    genderStats.total += g.Total || g.total || 0;
+                });
+            }
+            
             setBoothAggregates({
                 events,
                 partyActivities,
                 visits,
                 influencers,
                 volunteers,
-                gender,
+                gender: genderStats,
                 governments,
                 localIssues,
                 samitis,
                 workStatuses,
-                workSummary,
                 winningParties,
                 boothVotes
             });
@@ -638,6 +648,12 @@ function HierarchicalMap({ onRegionClick }) {
                     level: panelLevel,
                     data: updatedData
                 }));
+                
+                // CRITICAL FIX: For booth level, set selectedBoothDetails from boothData
+                if (panelLevel === 'booth' && updatedData.boothData) {
+                    setSelectedBoothDetails(updatedData.boothData);
+                }
+                
                 // Stop loading when data arrives
                 setIsPanelLoading(false);
             } else {
@@ -2368,6 +2384,7 @@ function HierarchicalMap({ onRegionClick }) {
         try {
             // Skip if we already have data for this booth
             const cacheKey = `booth_${boothId}`;
+            
             if (hoverData[cacheKey]?.boothData) {
                 return;
             }
@@ -2416,7 +2433,6 @@ function HierarchicalMap({ onRegionClick }) {
                 if (result.success && result.data) {
                     relatedData = result.data;
                 }
-            } else {
             }
 
             // Extract gender stats from booth data
@@ -2446,14 +2462,17 @@ function HierarchicalMap({ onRegionClick }) {
                 }));
             }
             
-            setHoverData(prev => ({
-                ...prev,
-                [cacheKey]: {
-                    boothData,
-                    genderData,
-                    relatedData
-                }
-            }));
+            setHoverData(prev => {
+                const newData = {
+                    ...prev,
+                    [cacheKey]: {
+                        boothData,
+                        genderData,
+                        relatedData
+                    }
+                };
+                return newData;
+            });
         } catch (error) {
         }
     };
@@ -4083,7 +4102,7 @@ function HierarchicalMap({ onRegionClick }) {
                                             Booth Name
                                         </Typography>
                                         <Typography variant="body1" fontWeight={600}>
-                                            {selectedBoothDetails.booth_name || 'N/A'}
+                                            {selectedBoothDetails.name || selectedBoothDetails.booth_name || 'N/A'}
                                         </Typography>
                                     </Box>
 
@@ -4111,7 +4130,7 @@ function HierarchicalMap({ onRegionClick }) {
                                             State
                                         </Typography>
                                         <Typography variant="body1">
-                                            {selectedBoothDetails.state_name}
+                                            {selectedBoothDetails.state_id?.name || selectedBoothDetails.state_name || 'N/A'}
                                         </Typography>
                                     </Box>
 
@@ -4120,17 +4139,17 @@ function HierarchicalMap({ onRegionClick }) {
                                             Division
                                         </Typography>
                                         <Typography variant="body1">
-                                            {selectedBoothDetails.division_name}
+                                            {selectedBoothDetails.division_id?.name || selectedBoothDetails.division_name || 'N/A'}
                                         </Typography>
                                     </Box>
 
-                                    {selectedBoothDetails.district_name && selectedBoothDetails.district_name !== 'N/A' && (
+                                    {(selectedBoothDetails.district_name && selectedBoothDetails.district_name !== 'N/A') || selectedBoothDetails.district_id?.name && (
                                         <Box>
                                             <Typography variant="caption" color="text.secondary" fontWeight={600}>
                                                 District
                                             </Typography>
                                             <Typography variant="body1">
-                                                {selectedBoothDetails.district_name}
+                                                {selectedBoothDetails.district_id?.name || selectedBoothDetails.district_name || 'N/A'}
                                             </Typography>
                                         </Box>
                                     )}
@@ -4140,7 +4159,7 @@ function HierarchicalMap({ onRegionClick }) {
                                             Block
                                         </Typography>
                                         <Typography variant="body1">
-                                            {selectedBoothDetails.block_name}
+                                            {selectedBoothDetails.block_id?.name || selectedBoothDetails.block_name || 'N/A'}
                                         </Typography>
                                     </Box>
 
@@ -4149,7 +4168,7 @@ function HierarchicalMap({ onRegionClick }) {
                                             Assembly Constituency
                                         </Typography>
                                         <Typography variant="body1">
-                                            {selectedBoothDetails.assembly_name}
+                                            {selectedBoothDetails.assembly_id?.name || selectedBoothDetails.assembly_name || 'N/A'}
                                         </Typography>
                                     </Box>
 
@@ -4158,7 +4177,7 @@ function HierarchicalMap({ onRegionClick }) {
                                             Parliament Constituency
                                         </Typography>
                                         <Typography variant="body1">
-                                            {selectedBoothDetails.parliament_name}
+                                            {selectedBoothDetails.parliament_id?.name || selectedBoothDetails.parliament_name || 'N/A'}
                                         </Typography>
                                     </Box>
 
@@ -4167,7 +4186,7 @@ function HierarchicalMap({ onRegionClick }) {
                                             Election Year
                                         </Typography>
                                         <Typography variant="body1" fontWeight={600}>
-                                            {selectedBoothDetails.election_year}
+                                            {selectedBoothDetails.election_year || 'N/A'}
                                         </Typography>
                                     </Box>
                                 </Stack>
@@ -4185,7 +4204,7 @@ function HierarchicalMap({ onRegionClick }) {
                                                 Total Voters
                                             </Typography>
                                             <Typography variant="h5" fontWeight={700} color="primary">
-                                                {selectedBoothDetails.total_voters}
+                                                {selectedBoothDetails.Total || selectedBoothDetails.total_voters || 0}
                                             </Typography>
                                         </Box>
 
@@ -4194,7 +4213,7 @@ function HierarchicalMap({ onRegionClick }) {
                                                 Male Voters
                                             </Typography>
                                             <Typography variant="h6" fontWeight={700} color="info.main">
-                                                {selectedBoothDetails.male_voters}
+                                                {selectedBoothDetails.Male_Count || selectedBoothDetails.male_voters || 0}
                                             </Typography>
                                         </Box>
 
@@ -4203,7 +4222,7 @@ function HierarchicalMap({ onRegionClick }) {
                                                 Female Voters
                                             </Typography>
                                             <Typography variant="h6" fontWeight={700} color="secondary.main">
-                                                {selectedBoothDetails.female_voters}
+                                                {selectedBoothDetails.Female_Count || selectedBoothDetails.female_voters || 0}
                                             </Typography>
                                         </Box>
 
@@ -4212,12 +4231,12 @@ function HierarchicalMap({ onRegionClick }) {
                                                 Other Voters
                                             </Typography>
                                             <Typography variant="h6" fontWeight={700} color="warning.main">
-                                                {selectedBoothDetails.other_voters}
+                                                {selectedBoothDetails.others_Count || selectedBoothDetails.other_voters || 0}
                                             </Typography>
                                         </Box>
                                     </Box>
 
-                                    {selectedBoothDetails.total_voters > 0 && (
+                                    {(selectedBoothDetails.Total || selectedBoothDetails.total_voters || 0) > 0 && (
                                         <Box sx={{ mt: 1 }}>
                                             <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ mb: 1, display: 'block' }}>
                                                 Gender Distribution
@@ -4225,24 +4244,24 @@ function HierarchicalMap({ onRegionClick }) {
                                             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                                                 <Box sx={{ flex: 1 }}>
                                                     <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                                                        Male: {((selectedBoothDetails.male_voters / selectedBoothDetails.total_voters) * 100).toFixed(1)}%
+                                                        Male: {(((selectedBoothDetails.Male_Count || selectedBoothDetails.male_voters || 0) / (selectedBoothDetails.Total || selectedBoothDetails.total_voters || 1)) * 100).toFixed(1)}%
                                                     </Typography>
                                                     <Box sx={{ 
                                                         height: 8, 
                                                         backgroundColor: theme.palette.info.main, 
                                                         borderRadius: 1,
-                                                        width: `${(selectedBoothDetails.male_voters / selectedBoothDetails.total_voters) * 100}%`
+                                                        width: `${(((selectedBoothDetails.Male_Count || selectedBoothDetails.male_voters || 0) / (selectedBoothDetails.Total || selectedBoothDetails.total_voters || 1)) * 100)}%`
                                                     }} />
                                                 </Box>
                                                 <Box sx={{ flex: 1 }}>
                                                     <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                                                        Female: {((selectedBoothDetails.female_voters / selectedBoothDetails.total_voters) * 100).toFixed(1)}%
+                                                        Female: {(((selectedBoothDetails.Female_Count || selectedBoothDetails.female_voters || 0) / (selectedBoothDetails.Total || selectedBoothDetails.total_voters || 1)) * 100).toFixed(1)}%
                                                     </Typography>
                                                     <Box sx={{ 
                                                         height: 8, 
                                                         backgroundColor: theme.palette.secondary.main, 
                                                         borderRadius: 1,
-                                                        width: `${(selectedBoothDetails.female_voters / selectedBoothDetails.total_voters) * 100}%`
+                                                        width: `${(((selectedBoothDetails.Female_Count || selectedBoothDetails.female_voters || 0) / (selectedBoothDetails.Total || selectedBoothDetails.total_voters || 1)) * 100)}%`
                                                     }} />
                                                 </Box>
                                             </Box>
