@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   useTheme,
   useMediaQuery,
@@ -71,7 +71,7 @@ function ApexDonutChart({ data, loading }) {
   const line = theme.palette.divider;
   const backColor = theme.palette.background.paper;
 
-  const getPartyData = useCallback(() => {
+  const { series, labels } = useMemo(() => {
     if (!data || !Array.isArray(data) || data.length === 0) return { series: [], labels: [], stats: {} };
 
     const partyStats = {};
@@ -104,8 +104,7 @@ function ApexDonutChart({ data, loading }) {
     };
   }, [data]);
 
-  const { series, labels } = getPartyData();
-  const totalSeats = series.reduce((a, b) => a + b, 0);
+  const totalSeats = useMemo(() => series.reduce((a, b) => a + b, 0), [series]);
 
   const [options, setOptions] = useState(() =>
     getPieChartOptions(labels, totalSeats)

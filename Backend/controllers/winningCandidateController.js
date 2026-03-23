@@ -1281,9 +1281,10 @@ exports.getWinningCandidateStatsForMap = async (req, res, next) => {
     console.log('Total records found:', allRecords.length);
 
     if (allRecords.length === 0) {
-      return res.status(404).json({
+      return res.status(200).json({
         success: false,
-        error: `No winning candidates found for ${type} ${id}`
+        error: `No winning candidates found for ${type} ${id}`,
+        data: null
       });
     }
 
