@@ -1633,7 +1633,7 @@ function HierarchicalMap({ onRegionClick }) {
                                 fetchDivisionData(divisionId);
                             }
                         } else if (level === 'parliamentary') {
-                            const parliamentId = feature.properties.pcNo || feature.properties.parliamentId || feature.properties.id;
+                            const parliamentId = feature.properties._id || feature.properties.PC_ID || feature.properties.parliamentId || feature.properties.pcNo || feature.properties.id;
                             const parliamentName = feature.properties.name || feature.properties.PC_NAME || null;
                             if (parliamentId && !hoverData[cacheKey]?.parliamentData) {                                fetchParliamentData(parliamentId, parliamentName);
                             }
@@ -1687,7 +1687,7 @@ function HierarchicalMap({ onRegionClick }) {
                         // Fetch parliament candidate data for parliamentary level
                         if (level === 'parliamentary') {
                             // Use pcNo (parliament number) for consistent matching
-                            const parliamentId = feature.properties.pcNo || feature.properties.parliamentId || feature.properties.id;
+                            const parliamentId = feature.properties._id || feature.properties.PC_ID || feature.properties.parliamentId || feature.properties.pcNo || feature.properties.id;
 
                             if (parliamentId && !hoverData[cacheKey]?.parliamentCandidate) {
                                 fetchParliamentCandidateData(parliamentId);
@@ -2618,7 +2618,7 @@ function HierarchicalMap({ onRegionClick }) {
                     await fetchDivisionData(divisionId);
                 }
             } else if (level === 'parliamentary') {
-                const parliamentId = feature.properties.pcNo || feature.properties.parliamentId || feature.properties.id;
+                const parliamentId = feature.properties._id || feature.properties.PC_ID || feature.properties.parliamentId || feature.properties.pcNo || feature.properties.id;
                 const parliamentName = feature.properties.name || feature.properties.PC_NAME || null;
                 if (parliamentId) {                    await fetchParliamentData(parliamentId, parliamentName);
                 }
