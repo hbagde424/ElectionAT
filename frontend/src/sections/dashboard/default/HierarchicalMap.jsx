@@ -319,7 +319,7 @@ function HierarchicalMap({ onRegionClick }) {
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const currentLayerRef = useRef(null);
-    const boothLookupRef = useRef({}); // in-memory lookup: booth_number -> booth data
+    const boothLookupRef = useRef({}); // In-memory lookup: booth_number -> booth data
     const prefetchingBlocksRef = useRef(new Set());
     const navigate = useNavigate();
     const { userHierarchy } = usePermissions();
@@ -337,7 +337,7 @@ function HierarchicalMap({ onRegionClick }) {
     const [boothAggregates, setBoothAggregates] = useState(null);
     const [boothAggregatesLoading, setBoothAggregatesLoading] = useState(false);
     const [selectedBoothDetails, setSelectedBoothDetails] = useState(null);
-    const closeTimersRef = useRef({}); // store close timers by layer id to delay popup close
+    const closeTimersRef = useRef({}); // Store close timers by layer id to delay popup close
 
     // Helper to capitalize first letter for UI display (keeps internal state values lowercase)
     const capitalize = (s) => {
@@ -355,7 +355,7 @@ function HierarchicalMap({ onRegionClick }) {
         }
     };
 
-    // Γ£à CRITICAL FIX: Generate unique cache key using MongoDB _id
+    // CRITICAL FIX: Generate unique cache key using MongoDB _id
     const generateCacheKey = (level, feature) => {
         if (!feature || !feature.properties) return `${level}_unknown`;
         
@@ -654,7 +654,7 @@ function HierarchicalMap({ onRegionClick }) {
         if (!mapInstanceRef.current && mapRef.current) {
             mapInstanceRef.current = L.map(mapRef.current).setView([23.4707, 77.9455], 6); // Centered on MP
 
-            // --- Add India GeoJSON as a non-interactive background layer ---
+            // Add India GeoJSON as a non-interactive background layer
             fetch('/india.geojson')
                 .then(res => res.json())
                 .then(indiaData => {
@@ -671,7 +671,7 @@ function HierarchicalMap({ onRegionClick }) {
                 .catch(err => {
 
                 });
-            // --- End India GeoJSON block ---
+            // End India GeoJSON block
 
             // Add location found event handler
             mapInstanceRef.current.on('locationfound', (e) => {
@@ -1946,7 +1946,7 @@ function HierarchicalMap({ onRegionClick }) {
             const totalFemale = genderData.reduce((sum, g) => sum + (g.Female_Count || g.female || 0), 0);
             const totalOthers = genderData.reduce((sum, g) => sum + (g.others_Count || g.others || 0), 0);
 
-            // Γ£à CRITICAL FIX: Use unique cache key and clear old data
+            // CRITICAL FIX: Use unique cache key and clear old data
             const cacheKey = `division_${divisionObjectId}`;            // Update panel feature with MongoDB _id for cache key lookup
             if (isPanelOpen && panelLevel === 'division') {
                 setPanelData(prev => ({
@@ -2045,7 +2045,7 @@ function HierarchicalMap({ onRegionClick }) {
                 totalMale = genderData.reduce((sum, g) => sum + (g.Male_Count || g.male || 0), 0);
                 totalFemale = genderData.reduce((sum, g) => sum + (g.Female_Count || g.female || 0), 0);
                 totalOthers = genderData.reduce((sum, g) => sum + (g.others_Count || g.others || 0), 0);
-            }            // Γ£à CRITICAL FIX: Use unique cache key based on MongoDB _id
+            }            // CRITICAL FIX: Use unique cache key based on MongoDB _id
             const cacheKey = `parliament_${parliamentObjectId}`;            // Update panel feature with MongoDB _id for cache key lookup
             if (isPanelOpen && panelLevel === 'parliamentary') {
                 setPanelData(prev => ({
@@ -2145,7 +2145,7 @@ function HierarchicalMap({ onRegionClick }) {
                 totalMale = genderData.reduce((sum, g) => sum + (g.Male_Count || g.male || 0), 0);
                 totalFemale = genderData.reduce((sum, g) => sum + (g.Female_Count || g.female || 0), 0);
                 totalOthers = genderData.reduce((sum, g) => sum + (g.others_Count || g.others || 0), 0);
-            }            // Γ£à CRITICAL FIX: Use unique cache key based on MongoDB _id
+            }            // CRITICAL FIX: Use unique cache key based on MongoDB _id
             const cacheKey = `assembly_${String(assemblyObjectId)}`;
             
             // Update panel feature with MongoDB _id for cache key lookup
@@ -2237,7 +2237,7 @@ function HierarchicalMap({ onRegionClick }) {
             const totalFemale = genderData.reduce((sum, g) => sum + (g.Female_Count || g.female || 0), 0);
             const totalOthers = genderData.reduce((sum, g) => sum + (g.others_Count || g.others || 0), 0);
 
-            // Γ£à CRITICAL FIX: Use unique cache key based on MongoDB _id
+            // CRITICAL FIX: Use unique cache key based on MongoDB _id
             const cacheKey = `block_${String(blockObjectId)}`;
             
             // Update panel feature with MongoDB _id for cache key lookup
@@ -2330,7 +2330,7 @@ function HierarchicalMap({ onRegionClick }) {
                 };
             }
 
-            // Γ£à CRITICAL FIX: Use unique cache key based on MongoDB _id            // Update panel feature with MongoDB _id for cache key lookup
+            // CRITICAL FIX: Use unique cache key based on MongoDB _id            // Update panel feature with MongoDB _id for cache key lookup
             if (isPanelOpen && panelLevel === 'booth') {                setPanelData(prev => ({
                     ...prev,
                     feature: {
@@ -2519,7 +2519,7 @@ function HierarchicalMap({ onRegionClick }) {
             try {
                 const cachedPolygon = boothLookupRef.current[String(boothId)];
                 if (cachedPolygon) {
-                    // populate hoverData quickly so popup can show immediate info while we fetch counts
+                    // Populate hoverData quickly so popup can show immediate info while we fetch counts
                     setHoverData(prev => ({
                         ...prev,
                         [cacheKey]: {
@@ -2529,7 +2529,7 @@ function HierarchicalMap({ onRegionClick }) {
                     }));
                 }
             } catch (err) {
-                // non-fatal
+                // Non-fatal
             }
             
             // Try to fetch booth by ID if it's a MongoDB ObjectId
@@ -2575,7 +2575,7 @@ function HierarchicalMap({ onRegionClick }) {
             });
         }
 
-        // Γ£à CRITICAL FIX: Only clear data for THIS specific region, not all cached data
+        // CRITICAL FIX: Only clear data for THIS specific region, not all cached data
         // This prevents data overlap from other regions
         const cacheKey = generateCacheKey(level, feature);        // Clear only this region's cached data to force fresh fetch
         setHoverData(prev => {
