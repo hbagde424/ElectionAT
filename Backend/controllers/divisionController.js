@@ -524,6 +524,7 @@ exports.getDivisionRelatedData = async (req, res, next) => {
     const BlockVotes = require('../models/blockVotes');
     const BoothVotes = require('../models/boothVotes');
     const ParliamentVotes = require('../models/parliamentVotes');
+    const ParliamentCandidate = require('../models/ParliamentCandidate');
     const ElectionType = require('../models/electionType');
     const WinningCandidate = require('../models/winningCandidate');
     const WinningParty = require('../models/WinningParty');
@@ -587,8 +588,8 @@ exports.getDivisionRelatedData = async (req, res, next) => {
       BLO.find({ division_id: id }).populate('division_id', 'name').limit(100),
       AssemblyVotes.find({ division_id: id }).populate('division_id', 'name').limit(100),
       BlockVotes.find({ division_id: id }).populate('division_id', 'name').limit(100),
-      BoothVotes.find({ division_id: id }).populate('division_id', 'name').limit(100),
-      ParliamentVotes.find({ division_id: id }).populate('division_id', 'name').limit(100),
+      BoothVotes.find({ division_id: id }).populate('division_id', 'name').populate('parliament_id', 'name').limit(100),
+      ParliamentVotes.find({ division_id: id }).populate('division_id', 'name').populate('parliament_id', 'name').limit(100),
       ElectionType.find({ division_id: id }).populate('division_id', 'name').limit(100),
       WinningCandidate.find({ division_id: id }).populate('division_id', 'name').limit(100),
       WinningParty.find({ division_id: id }).populate('division_id', 'name').limit(100),
@@ -612,6 +613,49 @@ exports.getDivisionRelatedData = async (req, res, next) => {
       WorkStatus.find({ division_id: id }).populate('division_id', 'name').limit(100)
     ]);
 
+    // If no parliament votes exist, aggregate from booth votes
+    let aggregatedParliamentVotes = parliamentVotes;
+    if (parliamentVotes.length === 0 && boothVotes.length > 0) {
+      const votesByParliament = {};
+      boothVotes.forEach(bv => {
+        if (bv.parliament_id) {
+          const key = bv.parliament_id._id || bv.parliament_id;
+          if (!votesByParliament[key]) {
+            votesByParliament[key] = {
+              parliament_id: bv.parliament_id,
+              total_votes: 0
+            };
+          }
+          votesByParliament[key].total_votes += bv.total_votes || 0;
+        }
+      });
+      aggregatedParliamentVotes = Object.values(votesByParliament);
+    }
+
+    // Fetch parliament candidates for all parliaments in this division
+    let parliamentCandidatesData = [];
+    if (parliaments.length > 0) {
+      const parliamentIds = parliaments.map(p => p._id);
+      parliamentCandidatesData = await ParliamentCandidate.find({
+        parliament_id: { $in: parliamentIds }
+      }).populate('parliament_id', 'name').populate('candidate_id', 'name').limit(200);
+    }
+
+    // Calculate division-level statistics from parliament candidates
+    let divisionStats = {
+      totalVotes: 0,
+      totalMaleVoters: 0,
+      totalFemaleVoters: 0,
+      totalElectors: 0
+    };
+
+    parliamentCandidatesData.forEach(candidate => {
+      divisionStats.totalVotes += candidate.total_votes_parliament || 0;
+      divisionStats.totalMaleVoters += candidate.total_male_voters || 0;
+      divisionStats.totalFemaleVoters += candidate.female_voters || 0;
+      divisionStats.totalElectors += candidate.electors || 0;
+    });
+
     res.status(200).json({
       success: true,
       data: {
@@ -625,7 +669,9 @@ exports.getDivisionRelatedData = async (req, res, next) => {
         assemblyVotes: { count: assemblyVotes.length, data: assemblyVotes },
         blockVotes: { count: blockVotes.length, data: blockVotes },
         boothVotes: { count: boothVotes.length, data: boothVotes },
-        parliamentVotes: { count: parliamentVotes.length, data: parliamentVotes },
+        parliamentVotes: { count: aggregatedParliamentVotes.length, data: aggregatedParliamentVotes },
+        parliamentCandidates: { count: parliamentCandidatesData.length, data: parliamentCandidatesData },
+        divisionStats: divisionStats,
         electionTypes: { count: electionTypes.length, data: electionTypes },
         winningCandidates: { count: winningCandidates.length, data: winningCandidates },
         winningParties: { count: winningParties.length, data: winningParties },

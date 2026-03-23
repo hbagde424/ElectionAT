@@ -406,7 +406,8 @@ function HierarchicalMap({ onRegionClick }) {
         
         // Nested data/document
         if (it.data && typeof it.data === 'object') return getEntityId(it.data);
-        if (it.document && typeof it.document === 'object') return getEntityId(it.document);        return null;
+        if (it.document && typeof it.document === 'object') return getEntityId(it.document);
+        return null;
     };
 
     // Fetch aggregated per-booth datasets in parallel
@@ -477,7 +478,8 @@ function HierarchicalMap({ onRegionClick }) {
                 winningParties,
                 boothVotes
             });
-        } catch (err) {        } finally {
+        } catch (err) {
+        } finally {
             setBoothAggregatesLoading(false);
         }
     };
@@ -835,7 +837,8 @@ function HierarchicalMap({ onRegionClick }) {
                     })
                 };
                 
-                if (stateData.features.length === 0) {                    alert('No states available for your access level');
+                if (stateData.features.length === 0) {
+                    alert('No states available for your access level');
                     return;
                 }
             }
@@ -858,7 +861,8 @@ function HierarchicalMap({ onRegionClick }) {
             setCurrentLevel('state');
             setSelectedFeature(null);
             setNavigationHistory([]);
-        } catch (error) {            alert('Error loading state data: ' + error.message);
+        } catch (error) {
+            alert('Error loading state data: ' + error.message);
         }
     };
 
@@ -927,13 +931,15 @@ function HierarchicalMap({ onRegionClick }) {
 
             showBoundaries(transformedData, 'division');
             setCurrentLevel('division');
-        } catch (error) {            alert('Error loading division data: ' + error.message);
+        } catch (error) {
+            alert('Error loading division data: ' + error.message);
         }
     };
 
     // Parliamentary data will be fetched from CRUD models via new polygon API
     const loadParliamentaryData = async (divisionName) => {
-        try {            // First, get the division ID from the division name
+        try {
+            // First, get the division ID from the division name
             const divisionsResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions?search=${encodeURIComponent(divisionName)}`);
             if (!divisionsResponse.ok) {
                 throw new Error('Failed to fetch division');
@@ -945,12 +951,16 @@ function HierarchicalMap({ onRegionClick }) {
             }
             
             const division = divisionsData.data[0];
-            const divisionId = division._id;            // Now fetch parliaments for this division using the new polygon API
-            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/parliaments/polygons/name/${encodeURIComponent(divisionName)}`;            const response = await fetch(apiUrl);
-            if (!response.ok) {                throw new Error(`Failed to fetch parliamentary data: ${response.status} ${response.statusText}`);
+            const divisionId = division._id;
+            // Now fetch parliaments for this division using the new polygon API
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/parliaments/polygons/name/${encodeURIComponent(divisionName)}`;
+            const response = await fetch(apiUrl);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch parliamentary data: ${response.status} ${response.statusText}`);
             }
             
-            const responseData = await response.json();            // Handle array response: [{ type: 'FeatureCollection', features }]
+            const responseData = await response.json();
+            // Handle array response: [{ type: 'FeatureCollection', features }]
             let features = [];
             if (Array.isArray(responseData) && responseData.length > 0 && responseData[0].features) {
                 features = responseData[0].features;
@@ -958,7 +968,8 @@ function HierarchicalMap({ onRegionClick }) {
                 features = responseData.features;
             }
 
-            if (features && features.length > 0) {                let transformedData = {
+            if (features && features.length > 0) {
+                let transformedData = {
                     type: 'FeatureCollection',
                     features: features.map(feature => {
                         const parliamentId = feature.properties._id;
@@ -996,13 +1007,16 @@ function HierarchicalMap({ onRegionClick }) {
                     );
                     
                     const filteredIds = new Set(filteredFeatures.map(f => f._id));
-                    transformedData.features = transformedData.features.filter(f => filteredIds.has(f.properties._id));                }
+                    transformedData.features = transformedData.features.filter(f => filteredIds.has(f.properties._id));
+                }
 
                 showBoundaries(transformedData, 'parliamentary');
                 setCurrentLevel('parliamentary');
-            } else {                alert(`No parliamentary constituencies found for division: ${divisionName}`);
+            } else {
+                alert(`No parliamentary constituencies found for division: ${divisionName}`);
             }
-        } catch (error) {            alert(`Error loading parliamentary data for ${divisionName}: ${error.message}`);
+        } catch (error) {
+            alert(`Error loading parliamentary data for ${divisionName}: ${error.message}`);
         }
     };
 
@@ -1142,12 +1156,16 @@ function HierarchicalMap({ onRegionClick }) {
     };
 
     const loadAssemblyData = async (parliamentId) => {
-            try {                // Use the new unified polygon API for assemblies
-                const apiUrl = `${import.meta.env.VITE_APP_API_URL}/assemblies/polygons/parliament/${parliamentId}`;                const response = await fetch(apiUrl);
-                if (!response.ok) {                    throw new Error(`Failed to fetch assembly data: ${response.status} ${response.statusText}`);
+            try {
+                // Use the new unified polygon API for assemblies
+                const apiUrl = `${import.meta.env.VITE_APP_API_URL}/assemblies/polygons/parliament/${parliamentId}`;
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch assembly data: ${response.status} ${response.statusText}`);
                 }
 
-                const responseData = await response.json();                // Handle the response format: { success: true, data: [{ type: 'FeatureCollection', features }] }
+                const responseData = await response.json();
+                // Handle the response format: { success: true, data: [{ type: 'FeatureCollection', features }] }
                 let features = [];
                 if (responseData.success && responseData.data && responseData.data.length > 0) {
                     features = responseData.data[0].features || [];
@@ -1155,7 +1173,8 @@ function HierarchicalMap({ onRegionClick }) {
                     features = responseData.features;
                 }
 
-                if (features && features.length > 0) {                    let transformedData = {
+                if (features && features.length > 0) {
+                    let transformedData = {
                         type: 'FeatureCollection',
                         features: features.map(feature => {
                             const assemblyId = feature.properties._id;
@@ -1193,28 +1212,38 @@ function HierarchicalMap({ onRegionClick }) {
                         );
 
                         const filteredIds = new Set(filteredFeatures.map(f => f._id));
-                        transformedData.features = transformedData.features.filter(f => filteredIds.has(f.properties._id));                    }
+                        transformedData.features = transformedData.features.filter(f => filteredIds.has(f.properties._id));
+                    }
 
                     showBoundaries(transformedData, 'assembly');
                     setCurrentLevel('assembly');
-                } else {                    alert(`No assembly constituencies found for parliament ID: ${parliamentId}\n\nPlease check if assembly polygon data exists in the database.`);
+                } else {
+                    alert(`No assembly constituencies found for parliament ID: ${parliamentId}\n\nPlease check if assembly polygon data exists in the database.`);
                 }
-            } catch (error) {                alert(`Error loading assembly data: ${error.message}`);
+            } catch (error) {
+                alert(`Error loading assembly data: ${error.message}`);
             }
         }
 
     // Block data will be fetched from API
     const loadBlockData = async (assemblyId) => {
-        try {            // Use the new unified polygon API for blocks
-            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/blocks/polygons/assembly/${assemblyId}`;            const response = await fetch(apiUrl);            if (!response.ok) {                throw new Error('Failed to fetch block data');
+        try {
+            // Use the new unified polygon API for blocks
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/blocks/polygons/assembly/${assemblyId}`;
+            const response = await fetch(apiUrl);
+            if (!response.ok) {
+                throw new Error('Failed to fetch block data');
             }
-            const responseData = await response.json();            // Handle the response format: { success: true, data: [{ type: 'FeatureCollection', features }] }
+            const responseData = await response.json();
+            // Handle the response format: { success: true, data: [{ type: 'FeatureCollection', features }] }
             let features = [];
             if (responseData.success && responseData.data && responseData.data.length > 0) {
                 features = responseData.data[0].features || [];
             } else if (responseData.features) {
                 features = responseData.features;
-            }            if (features && features.length > 0) {                const transformedData = {
+            }
+            if (features && features.length > 0) {
+                const transformedData = {
                     type: 'FeatureCollection',
                     features: features.map((feature, index) => {
                         const blockId = feature.properties._id;
@@ -1242,7 +1271,8 @@ function HierarchicalMap({ onRegionClick }) {
                         };
                     })
                 };
-                showBoundaries(transformedData, 'block');                // Prefetch aggregated booth demographic counts for each block and cache under block_<id>
+                showBoundaries(transformedData, 'block');
+                // Prefetch aggregated booth demographic counts for each block and cache under block_<id>
                 (async () => {
                     try {
                         // Build a set of block identifiers to query
@@ -1251,14 +1281,16 @@ function HierarchicalMap({ onRegionClick }) {
                             name: f.properties.name || `Block ${f.properties.BlockNumber}`,
                             blockNumber: f.properties.BlockNumber,
                             acNo: f.properties.AC_NO
-                        })).filter(b => b.id);                        if (blocks.length === 0) return;
+                        })).filter(b => b.id);
+                        if (blocks.length === 0) return;
                         
                         // For each block, try to fetch booths by AC_NO and BlockNumber
                         await Promise.all(blocks.map(async (blk) => {
                             const blockCacheKey = `block_${blk.id}`;
                             try {
                                 // Try to find booths by assembly_no and block_number
-                                const searchUrl = `${import.meta.env.VITE_APP_API_URL}/booths?assembly_no=${blk.acNo}&limit=1000`;                                const resp = await fetch(searchUrl);
+                                const searchUrl = `${import.meta.env.VITE_APP_API_URL}/booths?assembly_no=${blk.acNo}&limit=1000`;
+                                const resp = await fetch(searchUrl);
                                 let booths = [];
                                 if (resp.ok) {
                                     const body = await resp.json();
@@ -1270,10 +1302,12 @@ function HierarchicalMap({ onRegionClick }) {
                                             const boothBlockNum = b.block_number || b.BlockNumber || b.blockNumber;
                                             return boothBlockNum == blk.blockNumber;
                                         });
-                                    }                                }
+                                    }
+                                }
 
                                 // Fallback: if no booths found, try matching by block number
-                                if (booths.length === 0 && blk.blockNumber) {                                    const headers = getAuthHeaders();
+                                if (booths.length === 0 && blk.blockNumber) {
+                                    const headers = getAuthHeaders();
                                     const allResp = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths?limit=10000`, { headers });
                                     if (allResp.ok) {
                                         const allBody = await allResp.json();
@@ -1283,7 +1317,8 @@ function HierarchicalMap({ onRegionClick }) {
                                             const boothAcNo = c.assembly_no || c.AC_NO || c.acNo;
                                             const boothBlockNum = c.block_number || c.BlockNumber || c.blockNumber;
                                             return boothAcNo == blk.acNo && boothBlockNum == blk.blockNumber;
-                                        });                                    }
+                                        });
+                                    }
                                 }
 
                                 // Aggregate counts
@@ -1342,19 +1377,25 @@ function HierarchicalMap({ onRegionClick }) {
 
                     }
                 })();
-            } else {                alert(`No block data available for assembly ID: ${assemblyId}\n\nPlease check if block polygon data exists in the database.`);
+            } else {
+                alert(`No block data available for assembly ID: ${assemblyId}\n\nPlease check if block polygon data exists in the database.`);
             }
-        } catch (error) {            alert(`Error loading block data: ${error.message}`);
+        } catch (error) {
+            alert(`Error loading block data: ${error.message}`);
         }
     };
 
     const loadBoothData = async (blockId, AC_NO = null) => {
-        try {            // Use the new unified polygon API for booths
-            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/booths/polygons/block/${blockId}`;            const response = await fetch(apiUrl);            if (!response.ok) {
+        try {
+            // Use the new unified polygon API for booths
+            const apiUrl = `${import.meta.env.VITE_APP_API_URL}/booths/polygons/block/${blockId}`;
+            const response = await fetch(apiUrl);
+            if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const responseData = await response.json();            // Validate API response structure
+            const responseData = await response.json();
+            // Validate API response structure
             if (!responseData.features || !Array.isArray(responseData.features)) {
                 throw new Error('Invalid API response structure');
             }
@@ -1404,7 +1445,8 @@ function HierarchicalMap({ onRegionClick }) {
                 if (layer instanceof L.Marker && layer._popup && layer._popup._content.includes('Booth')) {
                     mapInstanceRef.current.removeLayer(layer);
                 }
-            });            // Show only the selected block's booths
+            });
+            // Show only the selected block's booths
             showBoundaries(transformedData, 'booth');
             setCurrentLevel('booth');
 
@@ -1497,17 +1539,21 @@ function HierarchicalMap({ onRegionClick }) {
                 });
             }
 
-        } catch (error) {            alert(`Failed to load booth data for block ID: ${blockId}${AC_NO ? `, AC_NO: ${AC_NO}` : ''}\n\nError: ${error.message}`);
+        } catch (error) {
+            alert(`Failed to load booth data for block ID: ${blockId}${AC_NO ? `, AC_NO: ${AC_NO}` : ''}\n\nError: ${error.message}`);
         }
     };
 
 
 
-    const showBoundaries = (data, level) => {        resetLayer();
+    const showBoundaries = (data, level) => {
+        resetLayer();
 
         // Validate data before rendering
-        if (!data || !data.features || data.features.length === 0) {            return;
-        }        const style = (feature) => {
+        if (!data || !data.features || data.features.length === 0) {
+            return;
+        }
+        const style = (feature) => {
             let color = '#477fcdff';
             let weight = 2;
             let fillOpacity = 0.2;
@@ -1627,7 +1673,7 @@ function HierarchicalMap({ onRegionClick }) {
                                 fetchStateData(stateId);
                             }
                         } else if (level === 'division') {
-                            const divisionId = feature.properties.id || feature.properties.DIVISION_CODE || feature.properties.name || feature.properties._id;
+                            const divisionId = feature.properties._id || feature.properties.DIVISION_CODE || feature.properties.id || feature.properties.name;
                             if (divisionId && !hoverData[cacheKey]?.divisionData) {
 
                                 fetchDivisionData(divisionId);
@@ -1635,7 +1681,8 @@ function HierarchicalMap({ onRegionClick }) {
                         } else if (level === 'parliamentary') {
                             const parliamentId = feature.properties._id || feature.properties.PC_ID || feature.properties.parliamentId || feature.properties.pcNo || feature.properties.id;
                             const parliamentName = feature.properties.name || feature.properties.PC_NAME || null;
-                            if (parliamentId && !hoverData[cacheKey]?.parliamentData) {                                fetchParliamentData(parliamentId, parliamentName);
+                            if (parliamentId && !hoverData[cacheKey]?.parliamentData) {
+                                fetchParliamentData(parliamentId, parliamentName);
                             }
                         } else if (level === 'assembly') {
                             const assemblyId = feature.properties.AC_NO || feature.properties.acNo || feature.properties.assembly_no || feature.properties.assemblyNo || feature.properties.id;
@@ -1694,7 +1741,7 @@ function HierarchicalMap({ onRegionClick }) {
                             }
                         }
 
-                        // Open popup (if not already open) ΓÇö close other popups first so only this popup is visible
+                        // Open popup (if not already open) - close other popups first so only this popup is visible
                         try {
                             if (mapInstanceRef.current) mapInstanceRef.current.closePopup();
                             target.openPopup();
@@ -1795,19 +1842,25 @@ function HierarchicalMap({ onRegionClick }) {
             try {
                 const bounds = currentLayerRef.current.getBounds();
                 if (bounds.isValid()) {
-                    mapInstanceRef.current.fitBounds(bounds);                } else {                }
-            } catch (err) {            }
-        } else {        }
+                    mapInstanceRef.current.fitBounds(bounds);
+                } else {
+                }
+            } catch (err) {
+            }
+        } else {
+        }
     };
 
     // Function to fetch comprehensive state data
     const fetchStateData = async (stateId) => {
-        try {            // Try direct ID fetch first
+        try {
+            // Try direct ID fetch first
             let stateResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/states/${stateId}`);
             let stateData = {};
             
             // If direct fetch fails or returns nothing, try search by name
-            if (!stateResponse.ok || stateResponse.status === 404) {                // Convert slug to proper name (e.g., "madhya-pradesh" -> "Madhya Pradesh")
+            if (!stateResponse.ok || stateResponse.status === 404) {
+                // Convert slug to proper name (e.g., "madhya-pradesh" -> "Madhya Pradesh")
                 const stateName = stateId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
                 stateResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/states?search=${encodeURIComponent(stateName)}`);
             }
@@ -1816,8 +1869,11 @@ function HierarchicalMap({ onRegionClick }) {
                 const result = await stateResponse.json();
                 if (result.success) {
                     // Handle both single object and array response
-                    stateData = Array.isArray(result.data) ? result.data[0] : result.data;                } else {                }
-            } else {            }
+                    stateData = Array.isArray(result.data) ? result.data[0] : result.data;
+                } else {
+                }
+            } else {
+            }
 
             // Fetch aggregated gender stats for state using existing API
             const headers = getAuthHeaders();
@@ -1876,7 +1932,8 @@ function HierarchicalMap({ onRegionClick }) {
                     // No token: set N/A placeholders
                     winningData = { winner_2023: 'N/A', winner_2018: 'N/A', winner_2013: 'N/A' };
                 }
-            } catch (e) {            }
+            } catch (e) {
+            }
 
             setHoverData(prev => ({
                 ...prev,
@@ -1909,7 +1966,8 @@ function HierarchicalMap({ onRegionClick }) {
 
     // Function to fetch comprehensive division data
     const fetchDivisionData = async (divisionId) => {
-        try {            // Try to find division by ID or name
+        try {
+            // Try to find division by ID or name
             let divisionResponse;
             if (divisionId && divisionId.length === 24) {
                 divisionResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/divisions/${divisionId}`);
@@ -1925,7 +1983,9 @@ function HierarchicalMap({ onRegionClick }) {
                 }
             }
 
-            const divisionObjectId = divisionData._id || divisionId;            const headers = getAuthHeaders();
+            const divisionObjectId = divisionData._id || divisionId;
+            
+            const headers = getAuthHeaders();
             
             // Fetch comprehensive related data using /related-data endpoint
             const relatedDataResponse = await fetch(
@@ -1937,7 +1997,8 @@ function HierarchicalMap({ onRegionClick }) {
             if (relatedDataResponse.ok) {
                 const result = await relatedDataResponse.json();
                 if (result.success && result.data) {
-                    relatedData = result.data;                }
+                    relatedData = result.data;
+                }
             }
 
             // Calculate aggregates
@@ -1947,7 +2008,9 @@ function HierarchicalMap({ onRegionClick }) {
             const totalOthers = genderData.reduce((sum, g) => sum + (g.others_Count || g.others || 0), 0);
 
             // CRITICAL FIX: Use unique cache key and clear old data
-            const cacheKey = `division_${divisionObjectId}`;            // Update panel feature with MongoDB _id for cache key lookup
+            const cacheKey = `division_${divisionObjectId}`;
+            
+            // Update panel feature with MongoDB _id for cache key lookup
             if (isPanelOpen && panelLevel === 'division') {
                 setPanelData(prev => ({
                     ...prev,
@@ -1971,6 +2034,9 @@ function HierarchicalMap({ onRegionClick }) {
                     boothsData: relatedData.booths?.data || [],
                     casteLists: relatedData.casteLists?.data || [],
                     winningCandidates: relatedData.winningCandidates?.data || [],
+                    parliamentVotes: relatedData.parliamentVotes || {},
+                    parliamentCandidates: relatedData.parliamentCandidates || {},
+                    divisionStats: relatedData.divisionStats || {},
                     genderData: {
                         male: totalMale,
                         female: totalFemale,
@@ -1985,12 +2051,15 @@ function HierarchicalMap({ onRegionClick }) {
                     relatedData
                 }
             }));
-        } catch (error) {        }
+        } catch (error) {
+            console.error('❌ Error fetching division data:', error);
+        }
     };
 
     // Function to fetch comprehensive parliament data
     const fetchParliamentData = async (parliamentId, parliamentName = null) => {
-        try {            // Fetch parliament basic info
+        try {
+            // Fetch parliament basic info
             let parliamentResponse;
             if (parliamentId && parliamentId.length === 24) {
                 parliamentResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/parliaments/${parliamentId}`);
@@ -2011,7 +2080,8 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
             const parliamentObjectId = parliamentData?._id;
-            if (!parliamentObjectId) {                return;
+            if (!parliamentObjectId) {
+                return;
             }
             
             const headers = getAuthHeaders();
@@ -2026,11 +2096,14 @@ function HierarchicalMap({ onRegionClick }) {
             if (relatedDataResponse.ok) {
                 const result = await relatedDataResponse.json();
                 if (result.success && result.data) {
-                    relatedData = result.data;                }
-            } else {            }
+                    relatedData = result.data;
+                }
+            } else {
+            }
 
             // Calculate aggregates from winning candidates (electors and votes)
-            const winningCandidatesData = relatedData.winningCandidates?.data || [];            // Use electors from winning candidates as population
+            const winningCandidatesData = relatedData.winningCandidates?.data || [];
+            // Use electors from winning candidates as population
             const totalElectors = winningCandidatesData.reduce((sum, c) => sum + (c.electors || 0), 0);
             const totalMaleElectors = winningCandidatesData.reduce((sum, c) => sum + (c.male_electors || 0), 0);
             const totalFemaleElectors = winningCandidatesData.reduce((sum, c) => sum + (c.female_electors || 0), 0);
@@ -2045,8 +2118,10 @@ function HierarchicalMap({ onRegionClick }) {
                 totalMale = genderData.reduce((sum, g) => sum + (g.Male_Count || g.male || 0), 0);
                 totalFemale = genderData.reduce((sum, g) => sum + (g.Female_Count || g.female || 0), 0);
                 totalOthers = genderData.reduce((sum, g) => sum + (g.others_Count || g.others || 0), 0);
-            }            // CRITICAL FIX: Use unique cache key based on MongoDB _id
-            const cacheKey = `parliament_${parliamentObjectId}`;            // Update panel feature with MongoDB _id for cache key lookup
+            }
+            // CRITICAL FIX: Use unique cache key based on MongoDB _id
+            const cacheKey = `parliament_${parliamentObjectId}`;
+            // Update panel feature with MongoDB _id for cache key lookup
             if (isPanelOpen && panelLevel === 'parliamentary') {
                 setPanelData(prev => ({
                     ...prev,
@@ -2084,13 +2159,15 @@ function HierarchicalMap({ onRegionClick }) {
                     relatedData
                 }
             }));
-        } catch (error) {        }
+        } catch (error) {
+        }
     };
 
     // Function to fetch comprehensive assembly data
     // Function to fetch comprehensive assembly data
     const fetchAssemblyDataDetailed = async (assemblyId) => {
-        try {            // Fetch assembly basic info
+        try {
+            // Fetch assembly basic info
             let assemblyResponse;
             if (assemblyId && assemblyId.length === 24) {
                 assemblyResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/assemblies/${assemblyId}`);
@@ -2111,7 +2188,8 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
             const assemblyObjectId = assemblyData?._id;
-            if (!assemblyObjectId) {                return;
+            if (!assemblyObjectId) {
+                return;
             }
             
             const headers = getAuthHeaders();
@@ -2126,11 +2204,13 @@ function HierarchicalMap({ onRegionClick }) {
             if (relatedDataResponse.ok) {
                 const result = await relatedDataResponse.json();
                 if (result.success && result.data) {
-                    relatedData = result.data;                }
+                    relatedData = result.data;
+                }
             }
 
             // Calculate aggregates from winning candidates (electors and votes)
-            const winningCandidatesData = relatedData.winningCandidates?.data || [];            // Use electors from winning candidates as population
+            const winningCandidatesData = relatedData.winningCandidates?.data || [];
+            // Use electors from winning candidates as population
             const totalElectors = winningCandidatesData.reduce((sum, c) => sum + (c.electors || 0), 0);
             const totalMaleElectors = winningCandidatesData.reduce((sum, c) => sum + (c.male_electors || 0), 0);
             const totalFemaleElectors = winningCandidatesData.reduce((sum, c) => sum + (c.female_electors || 0), 0);
@@ -2145,7 +2225,8 @@ function HierarchicalMap({ onRegionClick }) {
                 totalMale = genderData.reduce((sum, g) => sum + (g.Male_Count || g.male || 0), 0);
                 totalFemale = genderData.reduce((sum, g) => sum + (g.Female_Count || g.female || 0), 0);
                 totalOthers = genderData.reduce((sum, g) => sum + (g.others_Count || g.others || 0), 0);
-            }            // CRITICAL FIX: Use unique cache key based on MongoDB _id
+            }
+            // CRITICAL FIX: Use unique cache key based on MongoDB _id
             const cacheKey = `assembly_${String(assemblyObjectId)}`;
             
             // Update panel feature with MongoDB _id for cache key lookup
@@ -2187,12 +2268,14 @@ function HierarchicalMap({ onRegionClick }) {
                     relatedData
                 }
             }));
-        } catch (error) {        }
+        } catch (error) {
+        }
     };
 
     // Function to fetch comprehensive block data
     const fetchBlockDataDetailed = async (blockId) => {
-        try {            // Fetch block basic info
+        try {
+            // Fetch block basic info
             let blockResponse;
             if (blockId && blockId.length === 24) {
                 blockResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/blocks/${blockId}`);
@@ -2213,7 +2296,8 @@ function HierarchicalMap({ onRegionClick }) {
             }
 
             const blockObjectId = blockData?._id;
-            if (!blockObjectId) {                return;
+            if (!blockObjectId) {
+                return;
             }
             
             const headers = getAuthHeaders();
@@ -2228,7 +2312,8 @@ function HierarchicalMap({ onRegionClick }) {
             if (relatedDataResponse.ok) {
                 const result = await relatedDataResponse.json();
                 if (result.success && result.data) {
-                    relatedData = result.data;                }
+                    relatedData = result.data;
+                }
             }
 
             // Calculate aggregates
@@ -2274,14 +2359,17 @@ function HierarchicalMap({ onRegionClick }) {
                     relatedData
                 }
             }));
-        } catch (error) {        }
+        } catch (error) {
+        }
     };
 
     // Function to fetch comprehensive booth data
     const fetchBoothDataDetailed = async (boothId) => {
-        try {            // Skip if we already have data for this booth
+        try {
+            // Skip if we already have data for this booth
             const cacheKey = `booth_${boothId}`;
-            if (hoverData[cacheKey]?.boothData) {                return;
+            if (hoverData[cacheKey]?.boothData) {
+                return;
             }
             
             // Fetch booth basic info by booth ID
@@ -2289,21 +2377,31 @@ function HierarchicalMap({ onRegionClick }) {
             let boothResponse;
             
             // Convert to string if it's an object
-            const boothIdStr = String(boothId);            // Try to fetch by ID first (if it's a MongoDB ObjectId - 24 hex characters)
-            if (boothIdStr && boothIdStr.length === 24 && /^[0-9a-f]{24}$/i.test(boothIdStr)) {                boothResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths/${boothIdStr}`, { headers });
+            const boothIdStr = String(boothId);
+            // Try to fetch by ID first (if it's a MongoDB ObjectId - 24 hex characters)
+            if (boothIdStr && boothIdStr.length === 24 && /^[0-9a-f]{24}$/i.test(boothIdStr)) {
+                boothResponse = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths/${boothIdStr}`, { headers });
             } else {
-                // If not a valid MongoDB ID, skip the API call                return;
-            }            let boothData = {};
+                // If not a valid MongoDB ID, skip the API call
+                return;
+            }
+            let boothData = {};
             if (boothResponse.ok) {
-                const result = await boothResponse.json();                if (result.success) {
+                const result = await boothResponse.json();
+                if (result.success) {
                     boothData = result.data || {};
                 }
-            } else {                try {
-                    const errorResult = await boothResponse.json();                } catch (e) {                }
+            } else {
+                try {
+                    const errorResult = await boothResponse.json();
+                } catch (e) {
+                }
                 return;
             }
 
-            const boothObjectId = boothData?._id;            if (!boothObjectId) {                return;
+            const boothObjectId = boothData?._id;
+            if (!boothObjectId) {
+                return;
             }
             
             // Fetch comprehensive related data using /related-data endpoint
@@ -2316,8 +2414,10 @@ function HierarchicalMap({ onRegionClick }) {
             if (relatedDataResponse.ok) {
                 const result = await relatedDataResponse.json();
                 if (result.success && result.data) {
-                    relatedData = result.data;                }
-            } else {            }
+                    relatedData = result.data;
+                }
+            } else {
+            }
 
             // Extract gender stats from booth data
             let genderData = {};
@@ -2330,8 +2430,10 @@ function HierarchicalMap({ onRegionClick }) {
                 };
             }
 
-            // CRITICAL FIX: Use unique cache key based on MongoDB _id            // Update panel feature with MongoDB _id for cache key lookup
-            if (isPanelOpen && panelLevel === 'booth') {                setPanelData(prev => ({
+            // CRITICAL FIX: Use unique cache key based on MongoDB _id
+            // Update panel feature with MongoDB _id for cache key lookup
+            if (isPanelOpen && panelLevel === 'booth') {
+                setPanelData(prev => ({
                     ...prev,
                     feature: {
                         ...prev.feature,
@@ -2352,7 +2454,8 @@ function HierarchicalMap({ onRegionClick }) {
                     relatedData
                 }
             }));
-        } catch (error) {        }
+        } catch (error) {
+        }
     };
 
     // Function to fetch gender data for hover
@@ -2510,9 +2613,11 @@ function HierarchicalMap({ onRegionClick }) {
 
     // Function to fetch booth data directly from booth API
     const fetchBoothGenderData = async (boothId) => {
-        try {            // Skip if we already have data for this booth
+        try {
+            // Skip if we already have data for this booth
             const cacheKey = `booth_${boothId}`;
-            if (hoverData[cacheKey]?.genderData) {                return;
+            if (hoverData[cacheKey]?.genderData) {
+                return;
             }
             
             // If we have polygon-derived properties cached for this booth, use them immediately
@@ -2534,7 +2639,8 @@ function HierarchicalMap({ onRegionClick }) {
             
             // Try to fetch booth by ID if it's a MongoDB ObjectId
             const boothIdStr = String(boothId);
-            if (boothIdStr.length === 24 && /^[0-9a-f]{24}$/i.test(boothIdStr)) {                const headers = getAuthHeaders();
+            if (boothIdStr.length === 24 && /^[0-9a-f]{24}$/i.test(boothIdStr)) {
+                const headers = getAuthHeaders();
                 const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/booths/${boothIdStr}`, { headers });
                 
                 if (response.ok) {
@@ -2559,7 +2665,9 @@ function HierarchicalMap({ onRegionClick }) {
                         return;
                     }
                 }
-            }        } catch (err) {        }
+            }
+        } catch (err) {
+        }
     };
 
     // Handle single click - show dynamic data in panel only
@@ -2577,7 +2685,8 @@ function HierarchicalMap({ onRegionClick }) {
 
         // CRITICAL FIX: Only clear data for THIS specific region, not all cached data
         // This prevents data overlap from other regions
-        const cacheKey = generateCacheKey(level, feature);        // Clear only this region's cached data to force fresh fetch
+        const cacheKey = generateCacheKey(level, feature);
+        // Clear only this region's cached data to force fresh fetch
         setHoverData(prev => {
             const next = { ...prev };
             delete next[cacheKey];
@@ -2601,18 +2710,20 @@ function HierarchicalMap({ onRegionClick }) {
         setIsPanelOpen(true);
 
         // Set timeout to stop loading after 10 seconds
-        const loadingTimeout = setTimeout(() => {            setIsPanelLoading(false);
+        const loadingTimeout = setTimeout(() => {
+            setIsPanelLoading(false);
         }, 10000);
 
         // If no cached data, fetch it using the same logic as hover
         try {
             if (level === 'state') {
-                const stateId = feature.properties.id || feature.properties.Name || feature.properties._id;                if (stateId) {
+                const stateId = feature.properties.id || feature.properties.Name || feature.properties._id;
+                if (stateId) {
 
                     await fetchStateData(stateId);
                 }
             } else if (level === 'division') {
-                const divisionId = feature.properties.id || feature.properties.DIVISION_CODE || feature.properties.name || feature.properties._id;
+                const divisionId = feature.properties._id || feature.properties.DIVISION_CODE || feature.properties.id || feature.properties.name;
                 if (divisionId) {
 
                     await fetchDivisionData(divisionId);
@@ -2620,11 +2731,13 @@ function HierarchicalMap({ onRegionClick }) {
             } else if (level === 'parliamentary') {
                 const parliamentId = feature.properties._id || feature.properties.PC_ID || feature.properties.parliamentId || feature.properties.pcNo || feature.properties.id;
                 const parliamentName = feature.properties.name || feature.properties.PC_NAME || null;
-                if (parliamentId) {                    await fetchParliamentData(parliamentId, parliamentName);
+                if (parliamentId) {
+                    await fetchParliamentData(parliamentId, parliamentName);
                 }
             } else if (level === 'assembly') {
                 const assemblyId = feature.properties._id || feature.properties.id || feature.properties.AC_NO || feature.properties.acNo;
-                if (assemblyId) {                    await fetchAssemblyDataDetailed(assemblyId);
+                if (assemblyId) {
+                    await fetchAssemblyDataDetailed(assemblyId);
                 }
             } else if (level === 'block') {
                 const blockId = feature.properties.BlockNumber || feature.properties.blockNumber || feature.properties.name || feature.properties.id;
@@ -2636,14 +2749,17 @@ function HierarchicalMap({ onRegionClick }) {
                 const boothId = feature.properties._id || feature.properties.id;
                 const boothNo = feature.properties.boothNo || feature.properties.booth_number;
                 
-                if (boothId) {                    await fetchBoothDataDetailed(boothId);
+                if (boothId) {
+                    await fetchBoothDataDetailed(boothId);
                     
-                    // Fetch aggregates using the booth MongoDB _id                    await fetchBoothAggregates(boothId, boothNo);
+                    // Fetch aggregates using the booth MongoDB _id
+                    await fetchBoothAggregates(boothId, boothNo);
                 }
             }
 
             // Data will be automatically updated via useEffect when hoverData changes
-        } catch (error) {            clearTimeout(loadingTimeout);
+        } catch (error) {
+            clearTimeout(loadingTimeout);
             setIsPanelLoading(false);
         }
     };
@@ -2656,7 +2772,8 @@ function HierarchicalMap({ onRegionClick }) {
             case 'state':
                 // Pass state name for filtering divisions - use both id and name for better matching
                 const stateId = feature.properties.id || feature.properties.name || feature.properties.Name;
-                const stateName = feature.properties.name || feature.properties.Name;                // Pass the state name (e.g., "Madhya Pradesh") for better matching with ST_NAME in divisions
+                const stateName = feature.properties.name || feature.properties.Name;
+                // Pass the state name (e.g., "Madhya Pradesh") for better matching with ST_NAME in divisions
                 loadDivisionData(stateName || stateId);
                 setCurrentLevel('division');
                 break;
@@ -2673,18 +2790,24 @@ function HierarchicalMap({ onRegionClick }) {
                     alert('No parliamentary data available for this division. Staying at division level.');
                 }
                 break;
-            case 'parliamentary':                let parliamentId = feature.properties._id || feature.properties.id || feature.properties.PC_ID;                // If no ID found, try to use parliament number as fallback
+            case 'parliamentary':
+                let parliamentId = feature.properties._id || feature.properties.id || feature.properties.PC_ID;
+                // If no ID found, try to use parliament number as fallback
                 if (!parliamentId) {
-                    parliamentId = feature.properties.parliament_no || feature.properties.PC_NO || feature.properties.pcNo;                }
+                    parliamentId = feature.properties.parliament_no || feature.properties.PC_NO || feature.properties.pcNo;
+                }
                 
-                if (!parliamentId) {                    alert('Error: Parliament ID not found. Please try again.');
+                if (!parliamentId) {
+                    alert('Error: Parliament ID not found. Please try again.');
                     break;
                 }
                 loadAssemblyData(parliamentId);
                 setCurrentLevel('assembly');
                 break;
-            case 'assembly':                const assemblyId = feature.properties._id || feature.properties.id;
-                if (!assemblyId) {                    alert('Error: Assembly ID not found. Please try again.');
+            case 'assembly':
+                const assemblyId = feature.properties._id || feature.properties.id;
+                if (!assemblyId) {
+                    alert('Error: Assembly ID not found. Please try again.');
                     break;
                 }
                 loadBlockData(assemblyId);
@@ -2692,10 +2815,12 @@ function HierarchicalMap({ onRegionClick }) {
                 break;
             case 'block':
                 const blockId = feature.properties._id || feature.properties.id;
-                const blockAcNo = feature.properties.AC_NO || feature.properties.acNo;                if (blockId) {
+                const blockAcNo = feature.properties.AC_NO || feature.properties.acNo;
+                if (blockId) {
                     loadBoothData(blockId, blockAcNo);
                     setCurrentLevel('booth');
-                } else {                    alert(`Block information incomplete.\n\nBlock ID: ${blockId}\n\nCannot navigate to booths without Block ID.`);
+                } else {
+                    alert(`Block information incomplete.\n\nBlock ID: ${blockId}\n\nCannot navigate to booths without Block ID.`);
                 }
                 break;
             default:
@@ -2720,7 +2845,8 @@ function HierarchicalMap({ onRegionClick }) {
             case 'state':
                 const stateData = safeData.stateData || {};
                 const stateGenderData = safeData.genderData || {};
-                const stateWinningData = safeData.winningData || {};                sections = [
+                const stateWinningData = safeData.winningData || {};
+                sections = [
                     {
                         title: 'Basic Information',
                         items: [
@@ -2730,7 +2856,8 @@ function HierarchicalMap({ onRegionClick }) {
                 ];
 
                 // Add description section if available
-                if (stateData.description) {                    sections.push({
+                if (stateData.description) {
+                    sections.push({
                         title: 'Description',
                         html: stateData.description
                     });
@@ -2761,6 +2888,42 @@ function HierarchicalMap({ onRegionClick }) {
                 const parliamentsData = safeData.parliamentsData || [];
                 const divisionGenderData = safeData.genderData || {};
                 const divisionAssembliesData = safeData.assembliesData || [];
+                const divisionParliamentVotes = safeData.parliamentVotes?.data || [];
+                const divisionParliamentCandidates = safeData.parliamentCandidates?.data || [];
+                const divisionBoothVotes = safeData.relatedData?.boothVotes?.data || [];
+                const divisionStats = safeData.divisionStats || {};
+                
+                // Aggregate votes by parliament from parliament candidates
+                const votesByParliament = {};
+                divisionParliamentCandidates.forEach(candidate => {
+                    const parliamentName = candidate.parliament_id?.name || 'Unknown Parliament';
+                    if (!votesByParliament[parliamentName]) {
+                        votesByParliament[parliamentName] = 0;
+                    }
+                    votesByParliament[parliamentName] += candidate.total_votes_parliament || 0;
+                });
+                
+                // If no parliament candidates, try parliament votes
+                if (Object.keys(votesByParliament).length === 0) {
+                    divisionParliamentVotes.forEach(vote => {
+                        const parliamentName = vote.parliament_id?.name || 'Unknown Parliament';
+                        if (!votesByParliament[parliamentName]) {
+                            votesByParliament[parliamentName] = 0;
+                        }
+                        votesByParliament[parliamentName] += vote.total_votes || 0;
+                    });
+                }
+                
+                // If still no data, aggregate from booth votes
+                if (Object.keys(votesByParliament).length === 0 && divisionBoothVotes.length > 0) {
+                    divisionBoothVotes.forEach(bv => {
+                        const parliamentName = bv.parliament_id?.name || 'Unknown Parliament';
+                        if (!votesByParliament[parliamentName]) {
+                            votesByParliament[parliamentName] = 0;
+                        }
+                        votesByParliament[parliamentName] += bv.total_votes || 0;
+                    });
+                }
                 
                 sections = [
                     {
@@ -2778,19 +2941,37 @@ function HierarchicalMap({ onRegionClick }) {
                         ]
                     },
                     {
-                        title: 'Voter Statistics',
+                        title: 'Election Statistics',
                         items: [
-                            { label: 'Total Population', value: divisionGenderData.total ? Number(divisionGenderData.total).toLocaleString() : '0' },
-                            { label: 'Male', value: divisionGenderData.male ? Number(divisionGenderData.male).toLocaleString() : '0' },
-                            { label: 'Female', value: divisionGenderData.female ? Number(divisionGenderData.female).toLocaleString() : '0' }
+                            { label: 'Total Votes', value: divisionStats.totalVotes ? Number(divisionStats.totalVotes).toLocaleString() : '0' },
+                            { label: 'Total Male Voters', value: divisionStats.totalMaleVoters ? Number(divisionStats.totalMaleVoters).toLocaleString() : '0' },
+                            { label: 'Total Female Voters', value: divisionStats.totalFemaleVoters ? Number(divisionStats.totalFemaleVoters).toLocaleString() : '0' }
                         ]
-                    }
+                    },
+                    // {
+                    //     title: 'Voter Statistics',
+                    //     items: [
+                    //         { label: 'Total Population', value: divisionGenderData.total ? Number(divisionGenderData.total).toLocaleString() : '0' },
+                    //         { label: 'Male', value: divisionGenderData.male ? Number(divisionGenderData.male).toLocaleString() : '0' },
+                    //         { label: 'Female', value: divisionGenderData.female ? Number(divisionGenderData.female).toLocaleString() : '0' }
+                    //     ]
+                    // }
                 ];
+
+                // Add Parliament Votes Summary
+                if (Object.keys(votesByParliament).length > 0) {
+                    sections.push({
+                        title: `Parliament Votes Summary (${Object.keys(votesByParliament).length} Parliaments)`,
+                        list: Object.entries(votesByParliament).map(([parliament, totalVotes]) => 
+                            `${parliament}: ${Number(totalVotes).toLocaleString()} votes`
+                        )
+                    });
+                }
 
                 if (parliamentsData.length > 0) {
                     sections.push({
                         title: 'Parliamentary Constituencies',
-                        list: parliamentsData.slice(0, 10).map(pc => `${pc.name} ΓÇô ${pc.parliament_no}`)
+                        list: parliamentsData.slice(0, 10).map(pc => `${pc.name} - ${pc.parliament_no}`)
                     });
                 }
                 break;
@@ -2874,7 +3055,7 @@ function HierarchicalMap({ onRegionClick }) {
                 if (assembliesData.length > 0) {
                     sections.push({
                         title: 'Assembly Constituencies',
-                        list: assembliesData.slice(0, 10).map((assembly, index) => `${index + 1}. ${assembly.name} ΓÇô ${assembly.AC_NO || 'N/A'}`)
+                        list: assembliesData.slice(0, 10).map((assembly, index) => `${index + 1}. ${assembly.name} - ${assembly.AC_NO || 'N/A'}`)
                     });
                 }
                 break;
@@ -2901,7 +3082,7 @@ function HierarchicalMap({ onRegionClick }) {
                         title: 'Hierarchy Statistics',
                         items: [
                             { label: 'Total Assembly', value: '1' },
-                            // { label: 'Total Booths', value: assemblyTotalBooths || 'ΓÇö' }
+                            // { label: 'Total Booths', value: assemblyTotalBooths || '-' }
                         ]
                     },
                     {
@@ -3329,7 +3510,8 @@ function HierarchicalMap({ onRegionClick }) {
                                                         key={listIndex}
                                                         style={{ cursor: 'pointer', color: '#007bff' }}
                                                         onClick={() => {
-                                                            if (entityId && detailPath) {                                                                navigate(`/election${detailPath}/${entityId}`);
+                                                            if (entityId && detailPath) {
+                                                                navigate(`/election${detailPath}/${entityId}`);
                                                             }
                                                         }}
                                                     >
@@ -3361,8 +3543,10 @@ function HierarchicalMap({ onRegionClick }) {
                                             const detailPath = section.viewMore.detailPath;
                                             const listPath = section.viewMore.listPath;
                                             
-                                            if (entityId && detailPath) {                                                navigate(`/election${detailPath}/${entityId}`);
-                                            } else if (listPath) {                                                navigate(`/election${listPath}`, {
+                                            if (entityId && detailPath) {
+                                                navigate(`/election${detailPath}/${entityId}`);
+                                            } else if (listPath) {
+                                                navigate(`/election${listPath}`, {
                                                     state: {
                                                         boothId: properties.id || properties._id,
                                                         boothNumber: properties.BoothNo || properties.boothNo || properties.booth_number,
@@ -3490,7 +3674,7 @@ function HierarchicalMap({ onRegionClick }) {
                         `<p><strong>Parliamentary Constituencies:</strong></p>
                         <ul style="margin: 5px 0; padding-left: 20px; max-height: 120px; overflow-y: auto;">
                             ${parliamentsData.slice(0, 8).map(pc =>
-                            `<li>${pc.name} ΓÇô ${pc.parliament_no}</li>`
+                            `<li>${pc.name} - ${pc.parliament_no}</li>`
                         ).join('')}
                         ${parliamentsData.length > 8 ? `<li>... and ${parliamentsData.length - 8} more</li>` : ''}
                         </ul>`
@@ -3524,7 +3708,7 @@ function HierarchicalMap({ onRegionClick }) {
                         `<p><strong>Assembly List:</strong></p>
                         <ul style="margin: 5px 0; padding-left: 20px; max-height: 120px; overflow-y: auto; font-size: 12px;">
                             ${assembliesData.map((assembly, index) =>
-                            `<li>${index + 1}. ${assembly.name} ΓÇô ${assembly.AC_NO || 'N/A'}</li>`
+                            `<li>${index + 1}. ${assembly.name} - ${assembly.AC_NO || 'N/A'}</li>`
                         ).join('')}
                         </ul>`
                         : ''}`;
@@ -4095,8 +4279,10 @@ function HierarchicalMap({ onRegionClick }) {
                                                                     '&:hover': entityId && detailPath ? { bgcolor: 'action.hover' } : {}
                                                                 }}
                                                                 onClick={() => {
-                                                                    if (entityId && detailPath) {                                                                        navigate(`${detailPath}/${entityId}`);
-                                                                    } else {                                                                    }
+                                                                    if (entityId && detailPath) {
+                                                                        navigate(`${detailPath}/${entityId}`);
+                                                                    } else {
+                                                                    }
                                                                 }}
                                                             >
                                                                 <ListItemAvatar>
@@ -4123,15 +4309,19 @@ function HierarchicalMap({ onRegionClick }) {
                                                         variant="contained"
                                                         onClick={() => {
                                                             const firstItem = items[0];
-                                                            const entityId = getEntityId(firstItem);                                                            if (entityId && detailPath) {                                                                navigate(`${detailPath}/${entityId}`);
-                                                            } else if (listPath) {                                                                navigate(listPath, {
+                                                            const entityId = getEntityId(firstItem);
+                                                            if (entityId && detailPath) {
+                                                                navigate(`${detailPath}/${entityId}`);
+                                                            } else if (listPath) {
+                                                                navigate(listPath, {
                                                                     state: {
                                                                         boothId: selectedBoothDetails._id,
                                                                         boothNumber: selectedBoothDetails.booth_number,
                                                                         boothName: selectedBoothDetails.booth_name
                                                                     }
                                                                 });
-                                                            } else {                                                            }
+                                                            } else {
+                                                            }
                                                         }}
                                                     >
                                                         View more
