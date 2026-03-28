@@ -1,6 +1,6 @@
 const BLO = require('../models/BLO');
 const OtpToken = require('../models/OtpToken');
-const { sendSMS } = require('../utils/sms');
+const { sendSMS, formatOtpMessage } = require('../utils/sms');
 const { maskPhoneNumber } = require('../utils/phoneUtils');
 const bcrypt = require('bcryptjs');
 const { logActivity } = require('../utils/logActivity');
@@ -411,159 +411,143 @@ const deleteBLO = async (req, res) => {
 // Request OTP for phone number reveal
 const requestPhoneOtp = async (req, res) => {
     try {
-        const { id } = req.params;
-        
-        // Find the BLO
-        const blo = await BLO.findById(id);
+        const blo = await BLO.findById(req.params.id);
         if (!blo) {
-            return res.status(404).json({
-                success: false,
-                message: 'BLO not found'
-            });
+            return res.status(404).json({ success: false, message: 'BLO not found' });
         }
 
+        // Check if contact number is available
         if (!blo.contact_number) {
-            return res.status(400).json({
-                success: false,
-                message: 'No contact number available for this BLO'
-            });
+            return res.status(400).json({ success: false, message: 'Mobile number not available for this BLO' });
         }
 
-        // Generate 6-digit OTP
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const hashedOtp = await bcrypt.hash(otpCode, 10);
-
-        // Delete any existing OTP tokens for this request
-        await OtpToken.deleteMany({
-            user_id: req.user.id,
-            purpose: 'blo_phone_reveal',
-            reference_id: id
-        });
-
-        // Create new OTP token
-        const otpToken = new OtpToken({
-            user_id: req.user.id,
-            otp_hash: hashedOtp,
-            purpose: 'blo_phone_reveal',
-            reference_id: id,
-            expires_at: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
-            max_attempts: 5
-        });
-
-        await otpToken.save();
-
-        // In development, log OTP to console
-        if (process.env.NODE_ENV === 'development') {
-            console.log(`[DEV] BLO Phone Reveal OTP for ${blo.blo_name}: ${otpCode}`);
+        // Get OTP destination (super admin or configured number)
+        let otpMobile = process.env.CSV_OTP_MOBILE_NUMBER;
+        if (!otpMobile) {
+            const User = require('../models/User');
+            const superAdmin = await User.findOne({ role: 'superAdmin', isActive: true }).sort({ created_at: 1 });
+            if (!superAdmin) {
+                return res.status(400).json({ success: false, message: 'No active Super Admin found to receive OTP' });
+            }
+            otpMobile = superAdmin.mobile;
         }
 
-        // Send SMS (in production, this would go to super admin or configured number)
-        const smsMessage = `OTP for revealing BLO phone number: ${otpCode}. Valid for 5 minutes.`;
-        const smsDestination = process.env.SUPER_ADMIN_PHONE || process.env.DEFAULT_SMS_NUMBER || '1234567890';
+        const OTP_LENGTH = 6;
+        const OTP_TTL_MINUTES = 5;
+        const otp = String(Math.floor(100000 + Math.random() * 900000));
         
-        try {
-            await sendSMS(smsDestination, smsMessage);
-        } catch (smsError) {
-            console.error('SMS sending failed:', smsError);
-            // Continue anyway - OTP is logged in development
+        console.log('Generated Phone Reveal OTP:', otp);
+        
+        const codeHash = await bcrypt.hash(otp, 10);
+        const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+
+        // Get user ID safely
+        const userId = req.user?._id || req.user?.id || 'anonymous';
+        const username = req.user?.username || 'unknown';
+
+        const token = await OtpToken.create({
+            purpose: 'blo_phone_reveal',
+            codeHash,
+            sentTo: otpMobile,
+            createdBy: userId,
+            expiresAt,
+            meta: {
+                bloId: blo._id,
+                requestedBy: { id: userId, username: username },
+                userAgent: req.headers['user-agent'] || null,
+                ip: req.ip || req.headers['x-forwarded-for'] || null
+            }
+        });
+
+        const msg = formatOtpMessage(otp, OTP_TTL_MINUTES);
+
+        if (process.env.NODE_ENV === 'development') {
+            console.log('='.repeat(60));
+            console.log('🔐 BLO PHONE REVEAL OTP (Development Mode)');
+            console.log('='.repeat(60));
+            console.log(`OTP: ${otp}`);
+            console.log(`BLO: ${blo.blo_name}`);
+            console.log(`Mobile: ${otpMobile}`);
+            console.log(`Expires in: ${OTP_TTL_MINUTES} minutes`);
+            console.log('='.repeat(60));
         }
 
-        res.json({
-            success: true,
-            message: 'OTP sent successfully',
-            masked_destination: maskPhoneNumber(smsDestination)
-        });
+        // Try to send SMS, but don't fail if SMS service is down
+        try {
+            await sendSMS(otpMobile, msg);
+        } catch (smsErr) {
+            console.warn('SMS sending failed (non-critical):', smsErr.message);
+            // Continue anyway - in development mode, OTP is shown in console
+        }
 
-    } catch (error) {
-        console.error('Error requesting phone OTP:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error requesting OTP',
-            error: error.message
-        });
+        const masked = otpMobile?.replace(/(\d{2})\d{6}(\d{2})/, '$1******$2') || '**********';
+
+        const response = {
+            success: true,
+            requestId: token._id,
+            to: masked,
+            expiresInMinutes: OTP_TTL_MINUTES
+        };
+
+        return res.json(response);
+    } catch (err) {
+        console.error('requestPhoneOtp error:', err);
+        return res.status(500).json({ success: false, message: 'Failed to generate OTP: ' + err.message });
     }
 };
 
 // Verify OTP and reveal phone number
 const verifyPhoneOtp = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { otp } = req.body;
-
-        if (!otp) {
-            return res.status(400).json({
-                success: false,
-                message: 'OTP is required'
-            });
+        const { requestId, otp } = req.body || {};
+        if (!requestId || !otp) {
+            return res.status(400).json({ success: false, message: 'requestId and otp are required' });
         }
 
-        // Find the OTP token
-        const otpToken = await OtpToken.findOne({
-            user_id: req.user.id,
-            purpose: 'blo_phone_reveal',
-            reference_id: id,
-            is_used: false,
-            expires_at: { $gt: new Date() }
-        });
-
-        if (!otpToken) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid or expired OTP'
-            });
+        const token = await OtpToken.findById(requestId);
+        if (!token || token.purpose !== 'blo_phone_reveal') {
+            return res.status(400).json({ success: false, message: 'Invalid OTP request' });
         }
 
-        // Check attempt limit
-        if (otpToken.attempts >= otpToken.max_attempts) {
-            await otpToken.deleteOne();
-            return res.status(400).json({
-                success: false,
-                message: 'Maximum OTP attempts exceeded'
-            });
+        if (token.usedAt) {
+            return res.status(400).json({ success: false, message: 'OTP already used' });
         }
 
-        // Verify OTP
-        const isValidOtp = await bcrypt.compare(otp, otpToken.otp_hash);
+        if (new Date() > token.expiresAt) {
+            return res.status(400).json({ success: false, message: 'OTP expired' });
+        }
+
+        if (token.attempts >= 5) {
+            return res.status(429).json({ success: false, message: 'Too many attempts. Please request a new OTP.' });
+        }
+
+        const match = await bcrypt.compare(otp, token.codeHash);
+        token.attempts += 1;
+
+        if (!match) {
+            await token.save();
+            return res.status(400).json({ success: false, message: 'Incorrect OTP' });
+        }
+
+        token.usedAt = new Date();
+        await token.save();
+
+        // Get the BLO with full phone number
+        const bloId = token.meta?.bloId || req.params.id;
+        const blo = await BLO.findById(bloId);
         
-        if (!isValidOtp) {
-            otpToken.attempts += 1;
-            await otpToken.save();
-            
-            return res.status(400).json({
-                success: false,
-                message: `Invalid OTP. ${otpToken.max_attempts - otpToken.attempts} attempts remaining`
-            });
-        }
-
-        // Mark OTP as used
-        otpToken.is_used = true;
-        await otpToken.save();
-
-        // Get the BLO with actual phone number
-        const blo = await BLO.findById(id);
         if (!blo) {
-            return res.status(404).json({
-                success: false,
-                message: 'BLO not found'
-            });
+            return res.status(404).json({ success: false, message: 'BLO not found' });
         }
 
-        // Log activity
-        await logActivity(req.user.id, 'VIEW', 'BLO_PHONE', id, `Revealed phone number for BLO: ${blo.blo_name}`);
-
-        res.json({
-            success: true,
-            message: 'Phone number revealed successfully',
-            phone_number: blo.contact_number
+        return res.json({ 
+            success: true, 
+            message: 'OTP verified',
+            phoneNumber: blo.contact_number || 'N/A'
         });
-
-    } catch (error) {
-        console.error('Error verifying phone OTP:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error verifying OTP',
-            error: error.message
-        });
+    } catch (err) {
+        console.error('verifyPhoneOtp error:', err);
+        return res.status(500).json({ success: false, message: 'Failed to verify OTP' });
     }
 };
 

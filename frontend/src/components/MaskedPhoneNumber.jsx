@@ -23,6 +23,12 @@ export default function MaskedPhoneNumber({ maskedNumber, blaId, bloId }) {
     const [maskedDest, setMaskedDest] = useState('');
 
     const requestOtp = async () => {
+        // Check if mobile number is available
+        if (!maskedNumber || maskedNumber === 'N/A') {
+            setError('Mobile number is not available for this record');
+            return;
+        }
+
         setLoading(true);
         setError('');
         try {
@@ -34,9 +40,11 @@ export default function MaskedPhoneNumber({ maskedNumber, blaId, bloId }) {
             const response = await axiosServices.post(endpoint);
             if (response.data.success) {
                 setRequestId(response.data.requestId);
-                setMaskedDest(response.data.masked_destination);
+                setMaskedDest(response.data.to);
                 setOtpDialogOpen(true);
                 setOtpCode(''); // Clear OTP field - user must enter manually
+            } else {
+                setError(response.data.message || 'Failed to request OTP');
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to request OTP');
@@ -59,11 +67,12 @@ export default function MaskedPhoneNumber({ maskedNumber, blaId, bloId }) {
                 : `/blos/${bloId}/verify-phone-otp`;
                 
             const response = await axiosServices.post(endpoint, {
+                requestId: requestId,
                 otp: otpCode
             });
             
             if (response.data.success) {
-                setRevealedNumber(response.data.phone_number);
+                setRevealedNumber(response.data.phoneNumber);
                 setOtpDialogOpen(false);
                 setOtpCode('');
             }
@@ -79,13 +88,16 @@ export default function MaskedPhoneNumber({ maskedNumber, blaId, bloId }) {
         setError('');
     };
 
+    // Check if mobile number is available
+    const isMobileAvailable = maskedNumber && maskedNumber !== 'N/A';
+
     return (
         <>
             <Stack direction="row" spacing={1} alignItems="center">
                 <Typography variant="body2">
-                    {revealedNumber || maskedNumber || 'N/A'}
+                    {revealedNumber || maskedNumber || 'Mobile number not available'}
                 </Typography>
-                {!revealedNumber && maskedNumber && (blaId || bloId) && (
+                {!revealedNumber && isMobileAvailable && (blaId || bloId) && (
                     <Tooltip title="Click to reveal phone number">
                         <IconButton
                             size="small"
